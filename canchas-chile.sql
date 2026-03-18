@@ -8,7 +8,7 @@ INSERT OR REPLACE INTO campos (slug, nombre, ciudad, pais, hoyos, par_total, slo
 VALUES ('prince-of-wales', 'Prince of Wales Country Club', 'La Reina, Santiago', 'Chile', 18, 72, 132, 76.4, 1);
 
 -- Hoyos Prince of Wales (desde tees azules)
-INSERT OR REPLACE INTO hoyos (campo_slug, hoyo, par, handicap_index, yardas_blancas, yardas_amarillas, yardas_rojas) VALUES
+INSERT OR REPLACE INTO hoyos (campo_slug, hoyo, par, handicap_index, yardas_blanco, yardas_amarillo, yardas_rojo) VALUES
 ('prince-of-wales', 1, 4, 11, 361, 340, 310),
 ('prince-of-wales', 2, 4, 9, 376, 355, 320),
 ('prince-of-wales', 3, 5, 3, 551, 520, 480),
@@ -34,7 +34,7 @@ INSERT OR REPLACE INTO campos (slug, nombre, ciudad, pais, hoyos, par_total, slo
 VALUES ('la-dehesa', 'Club de Golf La Dehesa', 'Lo Barnechea, Santiago', 'Chile', 18, 72, 131, 74.9, 1);
 
 -- Hoyos La Dehesa (desde tees negros)
-INSERT OR REPLACE INTO hoyos (campo_slug, hoyo, par, handicap_index, yardas_blancas, yardas_amarillas, yardas_rojas) VALUES
+INSERT OR REPLACE INTO hoyos (campo_slug, hoyo, par, handicap_index, yardas_blanco, yardas_amarillo, yardas_rojo) VALUES
 ('la-dehesa', 1, 5, 15, 556, 520, 480),
 ('la-dehesa', 2, 4, 7, 434, 410, 375),
 ('la-dehesa', 3, 3, 17, 204, 185, 165),
@@ -60,7 +60,7 @@ INSERT OR REPLACE INTO campos (slug, nombre, ciudad, pais, hoyos, par_total, slo
 VALUES ('sport-frances', 'Club de Golf Sport Francés', 'Vitacura, Santiago', 'Chile', 18, 72, 133, 72.5, 1);
 
 -- Hoyos Sport Francés (desde tees azules)
-INSERT OR REPLACE INTO hoyos (campo_slug, hoyo, par, handicap_index, yardas_blancas, yardas_amarillas, yardas_rojas) VALUES
+INSERT OR REPLACE INTO hoyos (campo_slug, hoyo, par, handicap_index, yardas_blanco, yardas_amarillo, yardas_rojo) VALUES
 ('sport-frances', 1, 4, 13, 392, 365, 351),
 ('sport-frances', 2, 4, 3, 371, 350, 330),
 ('sport-frances', 3, 4, 7, 410, 377, 364),
@@ -82,12 +82,11 @@ INSERT OR REPLACE INTO hoyos (campo_slug, hoyo, par, handicap_index, yardas_blan
 
 -- 4. CLUB DE GOLF LOS LEONES
 -- --------------------------
--- Nota: Los pares son estimados basados en canchas similares en Santiago
 INSERT OR REPLACE INTO campos (slug, nombre, ciudad, pais, hoyos, par_total, slope_rating, course_rating, activo)
 VALUES ('los-leones', 'Club de Golf Los Leones', 'Las Condes, Santiago', 'Chile', 18, 72, 128, 71.5, 1);
 
--- Hoyos Los Leones (estimados - actualizar con datos oficiales)
-INSERT OR REPLACE INTO hoyos (campo_slug, hoyo, par, handicap_index, yardas_blancas, yardas_amarillas, yardas_rojas) VALUES
+-- Hoyos Los Leones (estimados)
+INSERT OR REPLACE INTO hoyos (campo_slug, hoyo, par, handicap_index, yardas_blanco, yardas_amarillo, yardas_rojo) VALUES
 ('los-leones', 1, 4, 7, 385, 360, 330),
 ('los-leones', 2, 4, 11, 370, 350, 320),
 ('los-leones', 3, 5, 3, 520, 490, 455),
@@ -113,7 +112,7 @@ INSERT OR REPLACE INTO campos (slug, nombre, ciudad, pais, hoyos, par_total, slo
 VALUES ('hacienda-chicureo', 'Hacienda de Chicureo', 'Chicureo, Santiago', 'Chile', 18, 72, 130, 72.0, 1);
 
 -- Hoyos Hacienda Chicureo (estimados)
-INSERT OR REPLACE INTO hoyos (campo_slug, hoyo, par, handicap_index, yardas_blancas, yardas_amarillas, yardas_rojas) VALUES
+INSERT OR REPLACE INTO hoyos (campo_slug, hoyo, par, handicap_index, yardas_blanco, yardas_amarillo, yardas_rojo) VALUES
 ('hacienda-chicureo', 1, 4, 9, 395, 370, 340),
 ('hacienda-chicureo', 2, 5, 5, 540, 510, 475),
 ('hacienda-chicureo', 3, 3, 17, 170, 155, 140),
