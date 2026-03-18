@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin - Eventos</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #fff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --primary: #0f766e;
+      --primary-light: #ccfbf1;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --shadow: 0 4px 20px rgba(0,0,0,.06);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    
+    .header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff; padding: 20px 24px; }
+    .header-inner { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 22px; }
+    .header-actions { display: flex; gap: 12px; }
+    
+    .main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    
+    .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; margin-bottom: 24px; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+    .card-header h2 { font-size: 18px; }
+    
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    input, select, textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; outline: none; background: #fff; }
+    input:focus, select:focus { border-color: var(--primary); }
+    
+    .checkbox-group { display: flex; align-items: center; gap: 8px; }
+    .checkbox-group input { width: auto; }
+    
+    .btn { padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: #0d6459; }
+    .btn-secondary { background: #f1f5f9; color: var(--text); }
+    .btn-danger { background: #fee2e2; color: var(--danger); }
+    .btn-sm { padding: 8px 14px; font-size: 12px; }
+    
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { background: #f8fafc; padding: 14px; text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; border-bottom: 1px solid var(--line); }
+    tbody td { padding: 14px; border-bottom: 1px solid var(--line); font-size: 14px; }
+    tbody tr:hover { background: #f8fafc; }
+    
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-success { background: #dcfce7; color: #166534; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+    .badge-info { background: #dbeafe; color: #1e40af; }
+    
+    .alert { padding: 14px 18px; border-radius: 10px; font-size: 14px; margin-bottom: 20px; }
+    .alert-success { background: #dcfce7; color: #166534; }
+    .alert-error { background: #fee2e2; color: #991b1b; }
+    
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--line); }
+    .tab { padding: 12px 20px; font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    .empty { text-align: center; padding: 40px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <h1>⛳ Administración de Torneos</h1>
+      <div class="header-actions">
+        <a href="/" class="btn btn-secondary">← Volver</a>
+      </div>
+    </div>
+  </header>
+  
+  <main class="main">
+    <div id="alertBox"></div>
+    
+    <div class="tabs">
+      <div class="tab active" data-tab="eventos">Eventos</div>
+      <div class="tab" data-tab="campos">Campos</div>
+      <div class="tab" data-tab="sync">Sincronizar</div>
+    </div>
+    
+    <!-- Tab: Eventos -->
+    <div id="tab-eventos" class="tab-content active">
+      <div class="card">
+        <div class="card-header">
+          <h2>➕ Crear/Editar Evento</h2>
+        </div>
+        <form id="eventoForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Slug (URL)</label>
+              <input type="text" name="slug" placeholder="abierto-2025" required pattern="[a-z0-9\-]+" title="Solo letras minúsculas, números y guiones">
+            </div>
+            <div class="form-group">
+              <label>Título</label>
+              <input type="text" name="titulo" placeholder="Abierto de Golf 2025" required>
+            </div>
+            <div class="form-group">
+              <label>Campo</label>
+              <select name="campo_slug" id="campoSelect">
+                <option value="">Sin campo específico</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Formato de juego</label>
+              <select name="formato_juego">
+                <option value="stroke_play">Stroke Play</option>
+                <option value="stableford">Stableford</option>
+                <option value="match_play">Match Play</option>
+                <option value="fourball">Fourball</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Número de rondas</label>
+              <input type="number" name="num_rondas" value="1" min="1" max="4">
+            </div>
+            <div class="form-group">
+              <label>Fecha inicio</label>
+              <input type="date" name="fecha_inicio">
+            </div>
+            <div class="form-group">
+              <label>Fecha fin</label>
+              <input type="date" name="fecha_fin">
+            </div>
+            <div class="form-group">
+              <label>&nbsp;</label>
+              <div class="checkbox-group">
+                <input type="checkbox" name="usa_handicap" id="usaHandicap" checked>
+                <label for="usaHandicap" style="margin:0;">Usar handicap</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>&nbsp;</label>
+              <div class="checkbox-group">
+                <input type="checkbox" name="live_scoring" id="liveScoring">
+                <label for="liveScoring" style="margin:0;">Habilitar live scoring</label>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:8px;">
+            <button type="submit" class="btn btn-primary">💾 Guardar evento</button>
+            <button type="button" class="btn btn-secondary" onclick="limpiarFormEvento()">Limpiar</button>
+          </div>
+        </form>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <h2>📋 Eventos existentes</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Evento</th>
+                <th>Formato</th>
+                <th>Rondas</th>
+                <th>Fechas</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="eventosTableBody">
+              <tr><td colspan="6" class="empty">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tab: Campos -->
+    <div id="tab-campos" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2>➕ Crear/Editar Campo</h2>
+        </div>
+        <form id="campoForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Slug</label>
+              <input type="text" name="slug" placeholder="las-brisas" required>
+            </div>
+            <div class="form-group">
+              <label>Nombre</label>
+              <input type="text" name="nombre" placeholder="Las Brisas de Chicureo" required>
+            </div>
+            <div class="form-group">
+              <label>Ciudad</label>
+              <input type="text" name="ciudad" placeholder="Santiago">
+            </div>
+            <div class="form-group">
+              <label>Par total</label>
+              <input type="number" name="par_total" value="72" min="60" max="80">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">💾 Guardar campo</button>
+        </form>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <h2>⛳ Campos existentes</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Campo</th>
+                <th>Ciudad</th>
+                <th>Par</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="camposTableBody">
+              <tr><td colspan="4" class="empty">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tab: Sync -->
+    <div id="tab-sync" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2>🔄 Sincronizar jugadores desde inscripciones</h2>
+        </div>
+        <p style="color:var(--muted);margin-bottom:20px;">
+          Si tienes un sistema de inscripciones separado, puedes pegar aquí los datos JSON de los inscritos 
+          para importarlos a un evento.
+        </p>
+        <div class="form-group">
+          <label>Evento destino</label>
+          <select id="syncEvento" style="max-width:300px;">
+            <option value="">Selecciona evento...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Datos JSON de inscripciones</label>
+          <textarea id="syncData" rows="10" placeholder='[{"rut":"12345678-9","nombres":"Juan","apellido_paterno":"Pérez","categoria":"Varones"}]'></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="sincronizarJugadores()">📥 Importar jugadores</button>
+      </div>
+    </div>
+  </main>
+
+<script>
+(function() {
+  // Tabs
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+  
+  // Cargar datos iniciales
+  cargarEventos();
+  cargarCampos();
+  
+  // Form evento
+  document.getElementById('eventoForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const data = {
+      slug: form.slug.value.trim(),
+      titulo: form.titulo.value.trim(),
+      campo_slug: form.campo_slug.value || null,
+      formato_juego: form.formato_juego.value,
+      num_rondas: parseInt(form.num_rondas.value) || 1,
+      fecha_inicio: form.fecha_inicio.value || null,
+      fecha_fin: form.fecha_fin.value || null,
+      usa_handicap: form.usa_handicap.checked,
+      live_scoring: form.live_scoring.checked
+    };
+    
+    try {
+      const res = await fetch('/admin/eventos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      
+      if (result.ok) {
+        showAlert('✅ ' + result.message, 'success');
+        limpiarFormEvento();
+        cargarEventos();
+      } else {
+        showAlert('❌ ' + (result.error || 'Error'), 'error');
+      }
+    } catch (err) {
+      showAlert('❌ Error de conexión', 'error');
+    }
+  });
+  
+  // Form campo
+  document.getElementById('campoForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const data = {
+      slug: form.slug.value.trim(),
+      nombre: form.nombre.value.trim(),
+      ciudad: form.ciudad.value.trim() || null,
+      par_total: parseInt(form.par_total.value) || 72
+    };
+    
+    try {
+      const res = await fetch('/api/campos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      
+      if (result.ok) {
+        showAlert('✅ Campo guardado', 'success');
+        form.reset();
+        form.par_total.value = 72;
+        cargarCampos();
+      } else {
+        showAlert('❌ ' + (result.error || 'Error'), 'error');
+      }
+    } catch (err) {
+      showAlert('❌ Error de conexión', 'error');
+    }
+  });
+  
+  async function cargarEventos() {
+    try {
+      const res = await fetch('/admin/eventos');
+      const data = await res.json();
+      
+      const tbody = document.getElementById('eventosTableBody');
+      const syncSelect = document.getElementById('syncEvento');
+      
+      if (!data.ok || !data.eventos?.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty">No hay eventos</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = data.eventos.map(e => `
+        <tr>
+          <td>
+            <strong>${e.titulo}</strong><br>
+            <small style="color:var(--muted);">${e.slug}</small>
+          </td>
+          <td>${formatFormato(e.formato_juego)}</td>
+          <td>${e.num_rondas || 1}</td>
+          <td>${e.fecha_inicio || '-'}</td>
+          <td>
+            ${e.activo ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-warning">Inactivo</span>'}
+            ${e.live_scoring ? '<span class="badge badge-info" style="margin-left:4px;">Live</span>' : ''}
+          </td>
+          <td>
+            <a href="/resultados.html?evento=${e.slug}" class="btn btn-sm btn-secondary">Ver</a>
+            <a href="/admin-scoring.html?evento=${e.slug}" class="btn btn-sm btn-primary">Scoring</a>
+          </td>
+        </tr>
+      `).join('');
+      
+      syncSelect.innerHTML = '<option value="">Selecciona evento...</option>' +
+        data.eventos.map(e => `<option value="${e.slug}">${e.titulo}</option>`).join('');
+        
+    } catch (err) {
+      document.getElementById('eventosTableBody').innerHTML = 
+        '<tr><td colspan="6" class="empty">Error cargando eventos</td></tr>';
+    }
+  }
+  
+  async function cargarCampos() {
+    try {
+      const res = await fetch('/api/campos');
+      const data = await res.json();
+      
+      const tbody = document.getElementById('camposTableBody');
+      const select = document.getElementById('campoSelect');
+      
+      if (!data.ok || !data.campos?.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty">No hay campos</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = data.campos.map(c => `
+        <tr>
+          <td><strong>${c.nombre}</strong><br><small style="color:var(--muted);">${c.slug}</small></td>
+          <td>${c.ciudad || '-'}</td>
+          <td>${c.par_total || 72}</td>
+          <td>
+            <button class="btn btn-sm btn-secondary" onclick="editarHoyos('${c.slug}')">⛳ Hoyos</button>
+          </td>
+        </tr>
+      `).join('');
+      
+      select.innerHTML = '<option value="">Sin campo específico</option>' +
+        data.campos.map(c => `<option value="${c.slug}">${c.nombre}</option>`).join('');
+        
+    } catch (err) {
+      document.getElementById('camposTableBody').innerHTML = 
+        '<tr><td colspan="4" class="empty">Error cargando campos</td></tr>';
+    }
+  }
+  
+  window.limpiarFormEvento = function() {
+    const form = document.getElementById('eventoForm');
+    form.reset();
+    form.num_rondas.value = 1;
+    form.usa_handicap.checked = true;
+  };
+  
+  window.editarHoyos = function(campoSlug) {
+    // TODO: Modal para editar hoyos
+    alert('Función de edición de hoyos próximamente. Por ahora editar via SQL.');
+  };
+  
+  window.sincronizarJugadores = async function() {
+    const evento = document.getElementById('syncEvento').value;
+    const dataStr = document.getElementById('syncData').value.trim();
+    
+    if (!evento) {
+      showAlert('Selecciona un evento', 'error');
+      return;
+    }
+    
+    let inscripciones;
+    try {
+      inscripciones = JSON.parse(dataStr);
+    } catch {
+      showAlert('JSON inválido', 'error');
+      return;
+    }
+    
+    try {
+      const res = await fetch('/api/sync-inscripciones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ evento, inscripciones })
+      });
+      const result = await res.json();
+      
+      if (result.ok) {
+        showAlert(`✅ ${result.message}`, 'success');
+        document.getElementById('syncData').value = '';
+      } else {
+        showAlert('❌ ' + (result.error || 'Error'), 'error');
+      }
+    } catch (err) {
+      showAlert('❌ Error de conexión', 'error');
+    }
+  };
+  
+  function showAlert(message, type) {
+    const box = document.getElementById('alertBox');
+    box.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+    setTimeout(() => { box.innerHTML = ''; }, 5000);
+  }
+  
+  function formatFormato(f) {
+    const map = { 'stroke_play': 'Stroke', 'stableford': 'Stableford', 'match_play': 'Match', 'fourball': 'Fourball' };
+    return map[f] || f || 'Stroke';
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Live Scoring</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --line: #334155;
+      --primary: #14b8a6;
+      --primary-dark: #0d9488;
+      --danger: #f87171;
+      --success: #4ade80;
+      --warning: #fbbf24;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; min-height: 100dvh; }
+    
+    /* Header */
+    .header { background: var(--card); padding: 16px 20px; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 100; }
+    .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .event-name { font-size: 14px; font-weight: 600; }
+    .live-badge { background: var(--danger); padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .live-dot { width: 6px; height: 6px; background: #fff; border-radius: 50%; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+    .player-bar { display: flex; align-items: center; gap: 12px; }
+    .player-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #0891b2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; }
+    .player-info { flex: 1; }
+    .player-name { font-size: 16px; font-weight: 700; }
+    .player-meta { font-size: 12px; color: var(--muted); }
+    .total-score { text-align: right; }
+    .total-value { font-size: 32px; font-weight: 800; line-height: 1; }
+    .total-value.under { color: var(--danger); }
+    .total-value.over { color: #60a5fa; }
+    .total-label { font-size: 11px; color: var(--muted); }
+    
+    /* Progress bar */
+    .progress-bar { height: 4px; background: var(--line); margin-top: 12px; border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--primary); transition: width .3s; }
+    
+    /* Hole navigation */
+    .hole-nav { display: flex; background: var(--card); border-bottom: 1px solid var(--line); overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .hole-nav::-webkit-scrollbar { display: none; }
+    .hole-tab { flex: 0 0 auto; padding: 12px 16px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; position: relative; white-space: nowrap; }
+    .hole-tab.active { color: var(--primary); }
+    .hole-tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: var(--primary); }
+    .hole-tab.scored { color: var(--success); }
+    .hole-tab.scored::before { content: '✓'; margin-right: 4px; font-size: 10px; }
+    
+    /* Main content */
+    .main { padding: 20px; padding-bottom: 100px; }
+    
+    /* Hole card */
+    .hole-card { background: var(--card); border-radius: 20px; padding: 24px; margin-bottom: 20px; }
+    .hole-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .hole-number { font-size: 14px; color: var(--muted); font-weight: 600; }
+    .hole-number span { font-size: 48px; font-weight: 800; color: var(--text); display: block; line-height: 1; }
+    .hole-info { text-align: right; }
+    .hole-par { font-size: 24px; font-weight: 700; }
+    .hole-yards { font-size: 13px; color: var(--muted); }
+    
+    /* Score selector */
+    .score-selector { margin-bottom: 24px; }
+    .score-label { font-size: 13px; color: var(--muted); margin-bottom: 12px; text-align: center; }
+    .score-buttons { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .score-btn { padding: 20px 8px; border-radius: 14px; font-size: 24px; font-weight: 700; border: 2px solid var(--line); background: transparent; color: var(--text); cursor: pointer; transition: all .2s; position: relative; }
+    .score-btn:active { transform: scale(0.95); }
+    .score-btn.selected { border-color: var(--primary); background: var(--primary); color: #fff; }
+    .score-btn.eagle { border-color: var(--warning); }
+    .score-btn.eagle.selected { background: var(--warning); border-color: var(--warning); color: #000; }
+    .score-btn.birdie { border-color: var(--danger); }
+    .score-btn.birdie.selected { background: var(--danger); border-color: var(--danger); }
+    .score-btn.par { border-color: var(--success); }
+    .score-btn.par.selected { background: var(--success); border-color: var(--success); color: #000; }
+    .score-btn.bogey { border-color: #3b82f6; }
+    .score-btn.bogey.selected { background: #3b82f6; border-color: #3b82f6; }
+    .score-btn.double { border-color: #6366f1; }
+    .score-btn.double.selected { background: #6366f1; border-color: #6366f1; }
+    .score-btn-label { font-size: 9px; position: absolute; bottom: 4px; left: 0; right: 0; text-align: center; opacity: .7; }
+    
+    /* Additional inputs */
+    .additional-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .input-group { background: rgba(255,255,255,.05); border-radius: 12px; padding: 16px; }
+    .input-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .input-group .input-row { display: flex; align-items: center; justify-content: space-between; }
+    .input-group .value { font-size: 24px; font-weight: 700; }
+    .input-group .controls { display: flex; gap: 8px; }
+    .input-group button { width: 36px; height: 36px; border-radius: 10px; border: none; background: var(--line); color: var(--text); font-size: 18px; cursor: pointer; }
+    .input-group button:active { background: var(--primary); }
+    
+    /* Fairway selector */
+    .fairway-selector { margin-bottom: 20px; }
+    .fairway-selector label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 10px; text-align: center; }
+    .fairway-buttons { display: flex; gap: 8px; justify-content: center; }
+    .fairway-btn { padding: 12px 20px; border-radius: 10px; border: 2px solid var(--line); background: transparent; color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; }
+    .fairway-btn.selected { border-color: var(--primary); background: var(--primary); color: #fff; }
+    
+    /* Navigation buttons */
+    .nav-buttons { display: flex; gap: 12px; margin-top: 20px; }
+    .nav-btn { flex: 1; padding: 16px; border-radius: 14px; font-size: 15px; font-weight: 700; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .nav-btn.prev { background: var(--line); color: var(--text); }
+    .nav-btn.next { background: var(--primary); color: #fff; }
+    .nav-btn:disabled { opacity: .5; cursor: not-allowed; }
+    
+    /* Bottom bar */
+    .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--line); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .bottom-bar .thru { font-size: 13px; color: var(--muted); }
+    .bottom-bar .thru strong { color: var(--text); }
+    .sync-status { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+    .sync-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .sync-dot.synced { background: var(--success); }
+    .sync-dot.syncing { background: var(--warning); animation: pulse 1s infinite; }
+    .sync-dot.error { background: var(--danger); }
+    
+    /* Login screen */
+    .login-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+    .login-card { background: var(--card); border-radius: 24px; padding: 32px; width: 100%; max-width: 360px; text-align: center; }
+    .login-card h1 { font-size: 24px; margin-bottom: 8px; }
+    .login-card p { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+    .login-card input { width: 100%; padding: 16px; border: 2px solid var(--line); border-radius: 14px; font-size: 18px; text-align: center; background: transparent; color: var(--text); margin-bottom: 16px; letter-spacing: 2px; }
+    .login-card input:focus { border-color: var(--primary); outline: none; }
+    .login-card button { width: 100%; padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 700; border: none; background: var(--primary); color: #fff; cursor: pointer; }
+    .login-card .error { color: var(--danger); font-size: 13px; margin-top: 12px; }
+    
+    /* Round summary */
+    .round-summary { background: var(--card); border-radius: 20px; padding: 24px; margin-bottom: 20px; }
+    .summary-header { text-align: center; margin-bottom: 20px; }
+    .summary-header h2 { font-size: 20px; margin-bottom: 4px; }
+    .summary-header p { color: var(--muted); font-size: 13px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .summary-item { background: rgba(255,255,255,.05); border-radius: 12px; padding: 16px; text-align: center; }
+    .summary-item .value { font-size: 28px; font-weight: 800; }
+    .summary-item .label { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+    .summary-scorecard { overflow-x: auto; }
+    .summary-scorecard table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .summary-scorecard th, .summary-scorecard td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--line); }
+    .summary-scorecard thead th { background: rgba(255,255,255,.05); font-weight: 600; color: var(--muted); }
+    .submit-btn { width: 100%; padding: 18px; border-radius: 14px; font-size: 16px; font-weight: 700; border: none; background: var(--success); color: #000; cursor: pointer; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <!-- Login screen -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div style="font-size:64px;margin-bottom:16px;">⛳</div>
+      <h1>Live Scoring</h1>
+      <p>Ingresa tu RUT para comenzar</p>
+      <input type="text" id="rutInput" placeholder="12.345.678-9" autocomplete="off">
+      <button onclick="login()">Ingresar</button>
+      <div class="error" id="loginError" style="display:none;"></div>
+    </div>
+  </div>
+  
+  <!-- Main app -->
+  <div id="mainApp" style="display:none;">
+    <header class="header">
+      <div class="header-top">
+        <span class="event-name" id="eventName">Cargando...</span>
+        <span class="live-badge"><span class="live-dot"></span>EN VIVO</span>
+      </div>
+      <div class="player-bar">
+        <div class="player-avatar" id="playerAvatar">--</div>
+        <div class="player-info">
+          <div class="player-name" id="playerName">--</div>
+          <div class="player-meta" id="playerMeta">--</div>
+        </div>
+        <div class="total-score">
+          <div class="total-value" id="totalScore">E</div>
+          <div class="total-label" id="totalLabel">vs Par</div>
+        </div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </header>
+    
+    <nav class="hole-nav" id="holeNav"></nav>
+    
+    <main class="main" id="mainContent">
+      <!-- Hole scoring -->
+      <div id="holeScoring">
+        <div class="hole-card">
+          <div class="hole-header">
+            <div class="hole-number">
+              HOYO
+              <span id="currentHoleNum">1</span>
+            </div>
+            <div class="hole-info">
+              <div class="hole-par">Par <span id="currentPar">4</span></div>
+              <div class="hole-yards" id="currentYards">380 yds</div>
+            </div>
+          </div>
+          
+          <div class="score-selector">
+            <div class="score-label">¿Cuántos golpes?</div>
+            <div class="score-buttons" id="scoreButtons"></div>
+          </div>
+          
+          <div class="additional-inputs">
+            <div class="input-group">
+              <label>Putts</label>
+              <div class="input-row">
+                <span class="value" id="puttsValue">2</span>
+                <div class="controls">
+                  <button onclick="changePutts(-1)">−</button>
+                  <button onclick="changePutts(1)">+</button>
+                </div>
+              </div>
+            </div>
+            <div class="input-group">
+              <label>Penalidades</label>
+              <div class="input-row">
+                <span class="value" id="penaltiesValue">0</span>
+                <div class="controls">
+                  <button onclick="changePenalties(-1)">−</button>
+                  <button onclick="changePenalties(1)">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="fairway-selector" id="fairwaySelector">
+            <label>Fairway (solo par 4 y 5)</label>
+            <div class="fairway-buttons">
+              <button class="fairway-btn" data-value="left" onclick="setFairway('left')">← Izq</button>
+              <button class="fairway-btn" data-value="hit" onclick="setFairway('hit')">✓ Centro</button>
+              <button class="fairway-btn" data-value="right" onclick="setFairway('right')">Der →</button>
+            </div>
+          </div>
+          
+          <div class="nav-buttons">
+            <button class="nav-btn prev" id="prevBtn" onclick="prevHole()">← Anterior</button>
+            <button class="nav-btn next" id="nextBtn" onclick="nextHole()">Siguiente →</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Round summary (shown at end) -->
+      <div id="roundSummary" style="display:none;"></div>
+    </main>
+    
+    <div class="bottom-bar">
+      <div class="thru">Thru <strong id="thruCount">0</strong> de 18</div>
+      <div class="sync-status">
+        <span class="sync-dot synced" id="syncDot"></span>
+        <span id="syncText">Sincronizado</span>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const EVENTO = params.get('evento') || '';
+  
+  let currentPlayer = null;
+  let currentHole = 1;
+  let currentRonda = 1;
+  let pars = [4,4,3,5,4,4,3,4,5, 4,3,4,5,4,4,3,4,5];
+  let yards = [380,420,165,510,390,405,175,430,545, 400,185,415,530,380,440,195,410,520];
+  let scores = {}; // { hole: { golpes, putts, fairway, penalties } }
+  
+  // Format RUT
+  function formatRut(rut) {
+    let val = rut.replace(/[^0-9kK]/g, '').toUpperCase();
+    if (val.length < 2) return val;
+    return val.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '-' + val.slice(-1);
+  }
+  
+  document.getElementById('rutInput').addEventListener('input', function() {
+    this.value = formatRut(this.value);
+  });
+  
+  // Login
+  window.login = async function() {
+    const rutInput = document.getElementById('rutInput');
+    const loginError = document.getElementById('loginError');
+    const rut = rutInput.value.replace(/[^0-9kK]/gi, '').toUpperCase();
+    
+    if (rut.length < 7) {
+      loginError.textContent = 'Ingresa un RUT válido';
+      loginError.style.display = 'block';
+      return;
+    }
+    
+    try {
+      const res = await fetch(`/api/jugador?evento=${encodeURIComponent(EVENTO)}&rut=${encodeURIComponent(rut)}`);
+      const data = await res.json();
+      
+      if (!data.ok) {
+        loginError.textContent = data.error || 'Jugador no encontrado en este torneo';
+        loginError.style.display = 'block';
+        return;
+      }
+      
+      currentPlayer = data.jugador;
+      scores = data.scores || {};
+      pars = data.pars || pars;
+      yards = data.yards || yards;
+      currentRonda = data.ronda || 1;
+      
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+      
+      initApp();
+      
+    } catch (err) {
+      loginError.textContent = 'Error de conexión';
+      loginError.style.display = 'block';
+    }
+  };
+  
+  // Initialize app
+  function initApp() {
+    // Event name
+    document.getElementById('eventName').textContent = currentPlayer.evento_titulo || EVENTO;
+    
+    // Player info
+    const initials = (currentPlayer.nombres?.[0] || '') + (currentPlayer.apellido_paterno?.[0] || '');
+    document.getElementById('playerAvatar').textContent = initials;
+    document.getElementById('playerName').textContent = `${currentPlayer.nombres} ${currentPlayer.apellido_paterno}`;
+    document.getElementById('playerMeta').textContent = `${currentPlayer.categoria || '-'} · HCP ${currentPlayer.handicap || '-'}`;
+    
+    // Hole navigation
+    renderHoleNav();
+    
+    // Find first unscored hole
+    for (let i = 1; i <= 18; i++) {
+      if (!scores[i]?.golpes) {
+        currentHole = i;
+        break;
+      }
+    }
+    
+    renderHole();
+    updateTotals();
+  }
+  
+  // Render hole navigation
+  function renderHoleNav() {
+    const nav = document.getElementById('holeNav');
+    nav.innerHTML = Array.from({length: 18}, (_, i) => {
+      const hole = i + 1;
+      const isActive = hole === currentHole;
+      const isScored = scores[hole]?.golpes;
+      return `
+        <div class="hole-tab ${isActive ? 'active' : ''} ${isScored ? 'scored' : ''}" data-hole="${hole}">
+          ${hole}
+        </div>
+      `;
+    }).join('');
+    
+    nav.querySelectorAll('.hole-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        currentHole = parseInt(tab.dataset.hole);
+        renderHoleNav();
+        renderHole();
+      });
+    });
+    
+    // Scroll to active
+    const active = nav.querySelector('.active');
+    if (active) {
+      active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }
+  
+  // Render current hole
+  function renderHole() {
+    const par = pars[currentHole - 1];
+    const yard = yards[currentHole - 1];
+    const holeData = scores[currentHole] || { golpes: null, putts: 2, fairway: null, penalties: 0 };
+    
+    document.getElementById('currentHoleNum').textContent = currentHole;
+    document.getElementById('currentPar').textContent = par;
+    document.getElementById('currentYards').textContent = `${yard} yds`;
+    document.getElementById('puttsValue').textContent = holeData.putts || 2;
+    document.getElementById('penaltiesValue').textContent = holeData.penalties || 0;
+    
+    // Fairway only for par 4 and 5
+    document.getElementById('fairwaySelector').style.display = par >= 4 ? 'block' : 'none';
+    document.querySelectorAll('.fairway-btn').forEach(btn => {
+      btn.classList.toggle('selected', btn.dataset.value === holeData.fairway);
+    });
+    
+    // Score buttons
+    renderScoreButtons(par, holeData.golpes);
+    
+    // Nav buttons
+    document.getElementById('prevBtn').disabled = currentHole === 1;
+    document.getElementById('nextBtn').textContent = currentHole === 18 ? 'Finalizar →' : 'Siguiente →';
+    
+    // Progress
+    const scoredCount = Object.values(scores).filter(s => s.golpes).length;
+    document.getElementById('progressFill').style.width = `${(scoredCount / 18) * 100}%`;
+    document.getElementById('thruCount').textContent = scoredCount;
+  }
+  
+  // Render score buttons
+  function renderScoreButtons(par, selected) {
+    const buttons = document.getElementById('scoreButtons');
+    const options = [];
+    
+    // Generate options from eagle to double bogey+
+    for (let i = par - 2; i <= par + 3; i++) {
+      if (i < 1) continue;
+      const diff = i - par;
+      let label = '';
+      let cls = '';
+      
+      if (diff <= -2) { label = 'Eagle'; cls = 'eagle'; }
+      else if (diff === -1) { label = 'Birdie'; cls = 'birdie'; }
+      else if (diff === 0) { label = 'Par'; cls = 'par'; }
+      else if (diff === 1) { label = 'Bogey'; cls = 'bogey'; }
+      else { label = '+' + diff; cls = 'double'; }
+      
+      options.push({ value: i, label, cls });
+    }
+    
+    buttons.innerHTML = options.map(o => `
+      <button class="score-btn ${o.cls} ${selected === o.value ? 'selected' : ''}" data-value="${o.value}">
+        ${o.value}
+        <span class="score-btn-label">${o.label}</span>
+      </button>
+    `).join('');
+    
+    buttons.querySelectorAll('.score-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectScore(parseInt(btn.dataset.value));
+      });
+    });
+  }
+  
+  // Select score
+  function selectScore(value) {
+    if (!scores[currentHole]) {
+      scores[currentHole] = { golpes: null, putts: 2, fairway: null, penalties: 0 };
+    }
+    scores[currentHole].golpes = value;
+    
+    renderHole();
+    renderHoleNav();
+    updateTotals();
+    saveScore();
+  }
+  
+  // Change putts
+  window.changePutts = function(delta) {
+    if (!scores[currentHole]) {
+      scores[currentHole] = { golpes: null, putts: 2, fairway: null, penalties: 0 };
+    }
+    scores[currentHole].putts = Math.max(0, Math.min(10, (scores[currentHole].putts || 2) + delta));
+    document.getElementById('puttsValue').textContent = scores[currentHole].putts;
+    saveScore();
+  };
+  
+  // Change penalties
+  window.changePenalties = function(delta) {
+    if (!scores[currentHole]) {
+      scores[currentHole] = { golpes: null, putts: 2, fairway: null, penalties: 0 };
+    }
+    scores[currentHole].penalties = Math.max(0, Math.min(10, (scores[currentHole].penalties || 0) + delta));
+    document.getElementById('penaltiesValue').textContent = scores[currentHole].penalties;
+    saveScore();
+  };
+  
+  // Set fairway
+  window.setFairway = function(value) {
+    if (!scores[currentHole]) {
+      scores[currentHole] = { golpes: null, putts: 2, fairway: null, penalties: 0 };
+    }
+    scores[currentHole].fairway = scores[currentHole].fairway === value ? null : value;
+    document.querySelectorAll('.fairway-btn').forEach(btn => {
+      btn.classList.toggle('selected', btn.dataset.value === scores[currentHole].fairway);
+    });
+    saveScore();
+  };
+  
+  // Previous hole
+  window.prevHole = function() {
+    if (currentHole > 1) {
+      currentHole--;
+      renderHoleNav();
+      renderHole();
+    }
+  };
+  
+  // Next hole
+  window.nextHole = function() {
+    if (currentHole < 18) {
+      currentHole++;
+      renderHoleNav();
+      renderHole();
+    } else {
+      showSummary();
+    }
+  };
+  
+  // Update totals
+  function updateTotals() {
+    let total = 0;
+    let parTotal = 0;
+    let played = 0;
+    
+    for (let i = 1; i <= 18; i++) {
+      if (scores[i]?.golpes) {
+        total += scores[i].golpes;
+        parTotal += pars[i - 1];
+        played++;
+      }
+    }
+    
+    const toPar = total - parTotal;
+    const toParStr = played === 0 ? '--' : (toPar === 0 ? 'E' : (toPar > 0 ? '+' : '') + toPar);
+    
+    const totalEl = document.getElementById('totalScore');
+    totalEl.textContent = toParStr;
+    totalEl.className = 'total-value ' + (toPar < 0 ? 'under' : toPar > 0 ? 'over' : '');
+    
+    document.getElementById('totalLabel').textContent = played > 0 ? `${total} golpes` : 'vs Par';
+  }
+  
+  // Save score to server
+  let saveTimeout = null;
+  function saveScore() {
+    // Debounce
+    clearTimeout(saveTimeout);
+    
+    const syncDot = document.getElementById('syncDot');
+    const syncText = document.getElementById('syncText');
+    syncDot.className = 'sync-dot syncing';
+    syncText.textContent = 'Guardando...';
+    
+    saveTimeout = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/scores', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            evento: EVENTO,
+            ronda: currentRonda,
+            jugador_rut: currentPlayer.rut,
+            scores: scores
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (data.ok) {
+          syncDot.className = 'sync-dot synced';
+          syncText.textContent = 'Sincronizado';
+        } else {
+          throw new Error(data.error);
+        }
+      } catch (err) {
+        syncDot.className = 'sync-dot error';
+        syncText.textContent = 'Error al guardar';
+      }
+    }, 500);
+  }
+  
+  // Show summary
+  function showSummary() {
+    document.getElementById('holeScoring').style.display = 'none';
+    
+    let total = 0, parTotal = 0, puttsTotal = 0;
+    let stats = { eagles: 0, birdies: 0, pars: 0, bogeys: 0, doubles: 0 };
+    
+    for (let i = 1; i <= 18; i++) {
+      const s = scores[i];
+      if (s?.golpes) {
+        total += s.golpes;
+        parTotal += pars[i - 1];
+        puttsTotal += s.putts || 0;
+        
+        const diff = s.golpes - pars[i - 1];
+        if (diff <= -2) stats.eagles++;
+        else if (diff === -1) stats.birdies++;
+        else if (diff === 0) stats.pars++;
+        else if (diff === 1) stats.bogeys++;
+        else stats.doubles++;
+      }
+    }
+    
+    const toPar = total - parTotal;
+    const toParStr = toPar === 0 ? 'E' : (toPar > 0 ? '+' : '') + toPar;
+    
+    const summaryEl = document.getElementById('roundSummary');
+    summaryEl.style.display = 'block';
+    summaryEl.innerHTML = `
+      <div class="round-summary">
+        <div class="summary-header">
+          <h2>🏁 Ronda Completada</h2>
+          <p>Revisa tu scorecard antes de enviar</p>
+        </div>
+        
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="value" style="color:${toPar < 0 ? 'var(--danger)' : toPar > 0 ? '#60a5fa' : 'var(--text)'}">${toParStr}</div>
+            <div class="label">vs Par</div>
+          </div>
+          <div class="summary-item">
+            <div class="value">${total}</div>
+            <div class="label">Total</div>
+          </div>
+          <div class="summary-item">
+            <div class="value">${puttsTotal}</div>
+            <div class="label">Putts</div>
+          </div>
+        </div>
+        
+        <div class="summary-grid">
+          <div class="summary-item" style="background:rgba(251,191,36,.2);">
+            <div class="value" style="color:#fbbf24;">${stats.eagles}</div>
+            <div class="label">Eagles</div>
+          </div>
+          <div class="summary-item" style="background:rgba(248,113,113,.2);">
+            <div class="value" style="color:#f87171;">${stats.birdies}</div>
+            <div class="label">Birdies</div>
+          </div>
+          <div class="summary-item" style="background:rgba(74,222,128,.2);">
+            <div class="value" style="color:#4ade80;">${stats.pars}</div>
+            <div class="label">Pars</div>
+          </div>
+        </div>
+        
+        <div class="summary-scorecard">
+          <table>
+            <thead>
+              <tr>
+                <th>Hoyo</th>
+                ${[1,2,3,4,5,6,7,8,9].map(h => `<th>${h}</th>`).join('')}
+                <th>OUT</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="color:var(--muted);">Par</td>
+                ${pars.slice(0, 9).map(p => `<td>${p}</td>`).join('')}
+                <td style="font-weight:700;">${pars.slice(0, 9).reduce((a,b) => a+b, 0)}</td>
+              </tr>
+              <tr>
+                <td>Score</td>
+                ${[1,2,3,4,5,6,7,8,9].map(h => `<td style="font-weight:700;">${scores[h]?.golpes || '-'}</td>`).join('')}
+                <td style="font-weight:700;">${[1,2,3,4,5,6,7,8,9].reduce((a, h) => a + (scores[h]?.golpes || 0), 0)}</td>
+              </tr>
+            </tbody>
+          </table>
+          <table style="margin-top:8px;">
+            <thead>
+              <tr>
+                <th>Hoyo</th>
+                ${[10,11,12,13,14,15,16,17,18].map(h => `<th>${h}</th>`).join('')}
+                <th>IN</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="color:var(--muted);">Par</td>
+                ${pars.slice(9, 18).map(p => `<td>${p}</td>`).join('')}
+                <td style="font-weight:700;">${pars.slice(9, 18).reduce((a,b) => a+b, 0)}</td>
+              </tr>
+              <tr>
+                <td>Score</td>
+                ${[10,11,12,13,14,15,16,17,18].map(h => `<td style="font-weight:700;">${scores[h]?.golpes || '-'}</td>`).join('')}
+                <td style="font-weight:700;">${[10,11,12,13,14,15,16,17,18].reduce((a, h) => a + (scores[h]?.golpes || 0), 0)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <button class="submit-btn" onclick="submitRound()">✓ Confirmar y enviar scorecard</button>
+        <button class="nav-btn prev" style="margin-top:12px;width:100%;" onclick="editScores()">← Editar scores</button>
+      </div>
+    `;
+  }
+  
+  // Edit scores
+  window.editScores = function() {
+    document.getElementById('roundSummary').style.display = 'none';
+    document.getElementById('holeScoring').style.display = 'block';
+    currentHole = 1;
+    renderHoleNav();
+    renderHole();
+  };
+  
+  // Submit round
+  window.submitRound = async function() {
+    try {
+      const res = await fetch('/api/submit-round', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          evento: EVENTO,
+          ronda: currentRonda,
+          jugador_rut: currentPlayer.rut,
+          scores: scores,
+          confirmado: true
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (data.ok) {
+        alert('✅ Scorecard enviado correctamente. ¡Gracias!');
+        window.location.href = `/resultados.html?evento=${encodeURIComponent(EVENTO)}`;
+      } else {
+        alert('Error: ' + (data.error || 'No se pudo enviar'));
+      }
+    } catch (err) {
+      alert('Error de conexión');
+    }
+  };
+  
+  // Auto login if RUT in URL
+  const rutParam = params.get('rut');
+  if (rutParam && EVENTO) {
+    document.getElementById('rutInput').value = formatRut(rutParam);
+    login();
+  }
+})();
+</script>
+</body>
+</html>

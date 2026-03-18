@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Scoring - Resultados</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #fff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --primary: #0f766e;
+      --primary-light: #ccfbf1;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --warning: #f59e0b;
+      --shadow: 0 4px 20px rgba(0,0,0,.06);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    
+    .header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff; padding: 16px 24px; }
+    .header-inner { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+    .header h1 { font-size: 20px; }
+    .header-meta { font-size: 13px; color: #94a3b8; }
+    .header-actions { display: flex; gap: 12px; }
+    
+    .main { max-width: 1400px; margin: 0 auto; padding: 24px; }
+    
+    /* Cards */
+    .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 20px; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+    .card-header h3 { font-size: 16px; display: flex; align-items: center; gap: 8px; }
+    
+    /* Forms */
+    .form-row { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+    .form-group { flex: 1; min-width: 200px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+    input, select { width: 100%; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; outline: none; background: #fff; }
+    input:focus, select:focus { border-color: var(--primary); }
+    
+    /* Buttons */
+    .btn { padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: #0d6459; }
+    .btn-secondary { background: #f1f5f9; color: var(--text); }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-danger { background: #fee2e2; color: var(--danger); }
+    .btn-success { background: #dcfce7; color: var(--success); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    
+    /* Round tabs */
+    .round-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .round-tab { padding: 10px 24px; background: #f1f5f9; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s; border: 2px solid transparent; }
+    .round-tab:hover { background: #e2e8f0; }
+    .round-tab.active { background: var(--primary); color: #fff; }
+    .round-tab.has-scores { border-color: var(--success); }
+    
+    /* Player list */
+    .player-list { display: grid; gap: 8px; max-height: 400px; overflow-y: auto; }
+    .player-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #f8fafc; border-radius: 10px; cursor: pointer; transition: all .2s; }
+    .player-item:hover { background: #f1f5f9; }
+    .player-item.active { background: var(--primary-light); border: 2px solid var(--primary); }
+    .player-item.scored { position: relative; }
+    .player-item.scored::after { content: '✓'; position: absolute; right: 12px; color: var(--success); font-weight: 700; }
+    .player-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #0891b2); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+    .player-info { flex: 1; }
+    .player-name { font-weight: 600; font-size: 14px; }
+    .player-meta { font-size: 12px; color: var(--muted); }
+    .player-score-preview { text-align: right; }
+    .player-score-preview .score { font-size: 18px; font-weight: 700; }
+    .player-score-preview .thru { font-size: 11px; color: var(--muted); }
+    
+    /* Scoring grid */
+    .scoring-section { margin-top: 20px; }
+    .scoring-player-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; padding: 16px; background: #0f172a; color: #fff; border-radius: 12px; }
+    .scoring-player-header h3 { font-size: 18px; flex: 1; }
+    .scoring-player-header .total { font-size: 32px; font-weight: 700; }
+    
+    .scoring-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+    .scoring-table th, .scoring-table td { padding: 8px; text-align: center; border: 1px solid var(--line); font-size: 13px; }
+    .scoring-table thead th { background: #0f172a; color: #fff; font-weight: 600; }
+    .scoring-table .hole-row th { background: #1e293b; }
+    .scoring-table .par-row td { background: #f1f5f9; font-weight: 600; color: var(--muted); }
+    .scoring-table .label-cell { background: #f8fafc; font-weight: 600; text-align: left; padding-left: 12px; width: 80px; }
+    .scoring-table .subtotal { background: #e2e8f0; font-weight: 700; }
+    .scoring-table .total-cell { background: #0f172a; color: #fff; font-weight: 700; }
+    
+    .score-input { width: 100%; padding: 8px 4px; border: none; text-align: center; font-size: 15px; font-weight: 600; background: transparent; }
+    .score-input:focus { background: var(--primary-light); outline: 2px solid var(--primary); border-radius: 4px; }
+    .score-input.eagle { background: #fef3c7; }
+    .score-input.birdie { background: #fee2e2; }
+    .score-input.par { background: #f0fdf4; }
+    .score-input.bogey { background: #dbeafe; }
+    .score-input.double { background: #c7d2fe; }
+    .score-input.triple { background: #a5b4fc; }
+    
+    /* Stats summary */
+    .stats-bar { display: flex; gap: 16px; padding: 16px; background: #f8fafc; border-radius: 10px; margin-top: 16px; flex-wrap: wrap; }
+    .stat-item { text-align: center; min-width: 70px; }
+    .stat-item .value { font-size: 20px; font-weight: 700; }
+    .stat-item .label { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+    .stat-eagles { color: #92400e; }
+    .stat-birdies { color: #dc2626; }
+    .stat-pars { color: var(--success); }
+    .stat-bogeys { color: #1e40af; }
+    .stat-doubles { color: #4338ca; }
+    
+    /* Alerts */
+    .alert { padding: 12px 16px; border-radius: 10px; font-size: 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+    .alert-success { background: #dcfce7; color: #166534; }
+    .alert-error { background: #fee2e2; color: #991b1b; }
+    .alert-warning { background: #fef3c7; color: #92400e; }
+    
+    /* Two column layout */
+    .two-col { display: grid; grid-template-columns: 320px 1fr; gap: 24px; }
+    @media (max-width: 900px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+    
+    /* Loading */
+    .loading { text-align: center; padding: 40px; color: var(--muted); }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--line); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    /* Import section */
+    .import-zone { border: 2px dashed var(--line); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all .2s; }
+    .import-zone:hover { border-color: var(--primary); background: var(--primary-light); }
+    .import-zone.dragover { border-color: var(--primary); background: var(--primary-light); }
+    .import-zone input { display: none; }
+    
+    /* Quick actions */
+    .quick-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <div>
+        <h1>⛳ Panel de Scoring</h1>
+        <p class="header-meta" id="eventInfo">Selecciona un evento</p>
+      </div>
+      <div class="header-actions">
+        <select id="eventoSelect" style="min-width:250px;">
+          <option value="">Selecciona un evento...</option>
+        </select>
+        <a href="/admin-campeonatos.html" class="btn btn-secondary">⚙️ Configurar</a>
+      </div>
+    </div>
+  </header>
+  
+  <main class="main">
+    <!-- Selector de evento vacío -->
+    <div id="emptyState" class="card" style="text-align:center;padding:60px;">
+      <div style="font-size:64px;margin-bottom:16px;">🏌️</div>
+      <h2 style="margin-bottom:8px;">Administrador de Scoring</h2>
+      <p style="color:var(--muted);margin-bottom:24px;">Selecciona un evento arriba para comenzar a ingresar scores</p>
+    </div>
+    
+    <!-- Panel principal (oculto inicialmente) -->
+    <div id="mainPanel" style="display:none;">
+      <!-- Rondas -->
+      <div class="card">
+        <div class="card-header">
+          <h3>📋 Rondas</h3>
+          <div class="quick-actions">
+            <button class="btn btn-sm btn-secondary" onclick="importScores()">📥 Importar Excel</button>
+            <button class="btn btn-sm btn-secondary" onclick="exportScores()">📤 Exportar</button>
+          </div>
+        </div>
+        <div class="round-tabs" id="roundTabs"></div>
+      </div>
+      
+      <!-- Alerta -->
+      <div id="alertBox" style="display:none;"></div>
+      
+      <!-- Layout dos columnas -->
+      <div class="two-col">
+        <!-- Lista de jugadores -->
+        <div class="card">
+          <div class="card-header">
+            <h3>👥 Jugadores</h3>
+            <span id="playerCount" style="font-size:13px;color:var(--muted);">0 jugadores</span>
+          </div>
+          <input type="text" id="playerSearch" placeholder="🔍 Buscar jugador..." style="margin-bottom:12px;">
+          <div class="player-list" id="playerList">
+            <div class="loading">
+              <div class="spinner"></div>
+              Cargando jugadores...
+            </div>
+          </div>
+        </div>
+        
+        <!-- Área de scoring -->
+        <div class="card">
+          <div id="scoringArea">
+            <div style="text-align:center;padding:60px;color:var(--muted);">
+              <div style="font-size:48px;margin-bottom:12px;">👈</div>
+              <p>Selecciona un jugador para ingresar sus scores</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <!-- Modal importar -->
+  <div id="importModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;">
+    <div class="card" style="max-width:500px;width:90%;margin:20px;">
+      <div class="card-header">
+        <h3>📥 Importar Scores desde Excel</h3>
+        <button class="btn btn-sm btn-secondary" onclick="closeImportModal()">✕</button>
+      </div>
+      <div class="import-zone" id="importZone" onclick="document.getElementById('importFile').click()">
+        <input type="file" id="importFile" accept=".xlsx,.xls,.csv" onchange="handleImportFile(this.files)">
+        <div style="font-size:48px;margin-bottom:12px;">📄</div>
+        <p style="font-weight:600;margin-bottom:8px;">Arrastra un archivo aquí o haz clic para seleccionar</p>
+        <p style="font-size:13px;color:var(--muted);">Formatos: Excel (.xlsx, .xls) o CSV</p>
+      </div>
+      <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;font-size:13px;">
+        <strong>Formato esperado:</strong><br>
+        Columnas: RUT, Hoyo1, Hoyo2, ... Hoyo18<br>
+        O: RUT, H1, H2, ... H18
+      </div>
+    </div>
+  </div>
+
+<script>
+(function() {
+  const eventoSelect = document.getElementById('eventoSelect');
+  const eventInfo = document.getElementById('eventInfo');
+  const emptyState = document.getElementById('emptyState');
+  const mainPanel = document.getElementById('mainPanel');
+  const roundTabs = document.getElementById('roundTabs');
+  const playerList = document.getElementById('playerList');
+  const playerSearch = document.getElementById('playerSearch');
+  const playerCount = document.getElementById('playerCount');
+  const scoringArea = document.getElementById('scoringArea');
+  const alertBox = document.getElementById('alertBox');
+  
+  let currentEvento = null;
+  let currentRonda = 1;
+  let currentJugador = null;
+  let jugadores = [];
+  let pars = [4,4,3,5,4,4,3,4,5, 4,3,4,5,4,4,3,4,5]; // Default pars
+  let scores = {}; // { rut: { hoyo: golpes } }
+  
+  // Cargar eventos
+  async function loadEventos() {
+    try {
+      const res = await fetch('/admin/eventos?accion=listar');
+      const data = await res.json();
+      if (data.ok && data.eventos) {
+        eventoSelect.innerHTML = '<option value="">Selecciona un evento...</option>' +
+          data.eventos.map(e => `<option value="${e.slug}">${e.titulo}</option>`).join('');
+      }
+    } catch (err) {
+      console.error('Error loading eventos:', err);
+    }
+  }
+  
+  // Cambio de evento
+  eventoSelect.addEventListener('change', async () => {
+    const slug = eventoSelect.value;
+    if (!slug) {
+      emptyState.style.display = 'block';
+      mainPanel.style.display = 'none';
+      currentEvento = null;
+      return;
+    }
+    
+    currentEvento = slug;
+    emptyState.style.display = 'none';
+    mainPanel.style.display = 'block';
+    
+    await loadEventoConfig();
+    await loadJugadores();
+  });
+  
+  // Cargar config del evento
+  async function loadEventoConfig() {
+    try {
+      const res = await fetch(`/api/config?evento=${encodeURIComponent(currentEvento)}`);
+      const data = await res.json();
+      
+      if (data.ok) {
+        eventInfo.textContent = `${data.titulo} · ${data.num_rondas || 1} ronda(s) · ${data.formato || 'Stroke Play'}`;
+        pars = data.pars || pars;
+        
+        // Render round tabs
+        const numRondas = data.num_rondas || 1;
+        roundTabs.innerHTML = Array.from({length: numRondas}, (_, i) => `
+          <div class="round-tab ${i + 1 === currentRonda ? 'active' : ''}" data-round="${i + 1}">
+            Ronda ${i + 1}
+          </div>
+        `).join('');
+        
+        roundTabs.querySelectorAll('.round-tab').forEach(tab => {
+          tab.addEventListener('click', () => {
+            currentRonda = parseInt(tab.dataset.round);
+            roundTabs.querySelectorAll('.round-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            loadJugadores();
+          });
+        });
+      }
+    } catch (err) {
+      console.error('Error loading config:', err);
+    }
+  }
+  
+  // Cargar jugadores
+  async function loadJugadores() {
+    playerList.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>';
+    
+    try {
+      const res = await fetch(`/api/jugadores?evento=${encodeURIComponent(currentEvento)}&ronda=${currentRonda}`);
+      const data = await res.json();
+      
+      if (data.ok) {
+        jugadores = data.jugadores || [];
+        scores = data.scores || {};
+        renderJugadores();
+      }
+    } catch (err) {
+      playerList.innerHTML = '<div style="color:var(--danger);padding:20px;">Error cargando jugadores</div>';
+    }
+  }
+  
+  // Render lista de jugadores
+  function renderJugadores(filter = '') {
+    const filtered = jugadores.filter(j => 
+      !filter || 
+      `${j.nombres} ${j.apellido_paterno}`.toLowerCase().includes(filter.toLowerCase()) ||
+      j.rut.includes(filter)
+    );
+    
+    playerCount.textContent = `${filtered.length} jugadores`;
+    
+    if (!filtered.length) {
+      playerList.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);">No hay jugadores</div>';
+      return;
+    }
+    
+    playerList.innerHTML = filtered.map(j => {
+      const initials = (j.nombres?.[0] || '') + (j.apellido_paterno?.[0] || '');
+      const playerScores = scores[j.rut] || {};
+      const holesPlayed = Object.keys(playerScores).length;
+      const total = Object.values(playerScores).reduce((a, b) => a + (b || 0), 0);
+      const isActive = currentJugador?.rut === j.rut;
+      const isScored = holesPlayed === 18;
+      
+      return `
+        <div class="player-item ${isActive ? 'active' : ''} ${isScored ? 'scored' : ''}" data-rut="${j.rut}">
+          <div class="player-avatar">${initials}</div>
+          <div class="player-info">
+            <div class="player-name">${j.nombres} ${j.apellido_paterno}</div>
+            <div class="player-meta">${j.categoria || '-'} · HCP ${j.handicap || '-'}</div>
+          </div>
+          ${holesPlayed > 0 ? `
+            <div class="player-score-preview">
+              <div class="score">${total}</div>
+              <div class="thru">Thru ${holesPlayed}</div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+    
+    playerList.querySelectorAll('.player-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const rut = item.dataset.rut;
+        currentJugador = jugadores.find(j => j.rut === rut);
+        renderJugadores(playerSearch.value);
+        renderScoringArea();
+      });
+    });
+  }
+  
+  // Búsqueda de jugadores
+  playerSearch.addEventListener('input', () => {
+    renderJugadores(playerSearch.value);
+  });
+  
+  // Render área de scoring
+  function renderScoringArea() {
+    if (!currentJugador) {
+      scoringArea.innerHTML = `
+        <div style="text-align:center;padding:60px;color:var(--muted);">
+          <div style="font-size:48px;margin-bottom:12px;">👈</div>
+          <p>Selecciona un jugador para ingresar sus scores</p>
+        </div>
+      `;
+      return;
+    }
+    
+    const playerScores = scores[currentJugador.rut] || {};
+    const initials = (currentJugador.nombres?.[0] || '') + (currentJugador.apellido_paterno?.[0] || '');
+    
+    // Calcular totales
+    let outTotal = 0, inTotal = 0;
+    for (let i = 1; i <= 9; i++) outTotal += playerScores[i] || 0;
+    for (let i = 10; i <= 18; i++) inTotal += playerScores[i] || 0;
+    const total = outTotal + inTotal;
+    
+    const outPar = pars.slice(0, 9).reduce((a, b) => a + b, 0);
+    const inPar = pars.slice(9, 18).reduce((a, b) => a + b, 0);
+    const totalPar = outPar + inPar;
+    const toPar = total - totalPar;
+    const toParStr = toPar === 0 ? 'E' : (toPar > 0 ? '+' : '') + toPar;
+    
+    // Estadísticas
+    let stats = { eagles: 0, birdies: 0, pars: 0, bogeys: 0, doubles: 0 };
+    for (let i = 1; i <= 18; i++) {
+      const s = playerScores[i];
+      if (!s) continue;
+      const diff = s - pars[i - 1];
+      if (diff <= -2) stats.eagles++;
+      else if (diff === -1) stats.birdies++;
+      else if (diff === 0) stats.pars++;
+      else if (diff === 1) stats.bogeys++;
+      else stats.doubles++;
+    }
+    
+    scoringArea.innerHTML = `
+      <div class="scoring-player-header">
+        <div class="player-avatar" style="width:48px;height:48px;font-size:18px;">${initials}</div>
+        <div style="flex:1;">
+          <h3>${currentJugador.nombres} ${currentJugador.apellido_paterno}</h3>
+          <div style="font-size:13px;color:#94a3b8;">${currentJugador.categoria || '-'} · HCP ${currentJugador.handicap || '-'}</div>
+        </div>
+        <div class="total" style="color:${toPar < 0 ? '#f87171' : toPar > 0 ? '#60a5fa' : '#fff'}">
+          ${total > 0 ? toParStr : '--'}
+        </div>
+      </div>
+      
+      <table class="scoring-table">
+        <thead>
+          <tr class="hole-row">
+            <th>Hoyo</th>
+            ${[1,2,3,4,5,6,7,8,9].map(h => `<th>${h}</th>`).join('')}
+            <th>OUT</th>
+            ${[10,11,12,13,14,15,16,17,18].map(h => `<th>${h}</th>`).join('')}
+            <th>IN</th>
+            <th>TOT</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="par-row">
+            <td class="label-cell">Par</td>
+            ${pars.slice(0, 9).map(p => `<td>${p}</td>`).join('')}
+            <td class="subtotal">${outPar}</td>
+            ${pars.slice(9, 18).map(p => `<td>${p}</td>`).join('')}
+            <td class="subtotal">${inPar}</td>
+            <td class="total-cell">${totalPar}</td>
+          </tr>
+          <tr>
+            <td class="label-cell">Score</td>
+            ${[1,2,3,4,5,6,7,8,9].map(h => `
+              <td>
+                <input type="number" min="1" max="15" 
+                  class="score-input ${getScoreClass(playerScores[h], pars[h-1])}"
+                  data-hole="${h}" 
+                  value="${playerScores[h] || ''}"
+                  placeholder="-"
+                  onchange="updateScore(${h}, this.value)"
+                  onkeydown="handleScoreKey(event, ${h})">
+              </td>
+            `).join('')}
+            <td class="subtotal">${outTotal || '-'}</td>
+            ${[10,11,12,13,14,15,16,17,18].map(h => `
+              <td>
+                <input type="number" min="1" max="15"
+                  class="score-input ${getScoreClass(playerScores[h], pars[h-1])}"
+                  data-hole="${h}"
+                  value="${playerScores[h] || ''}"
+                  placeholder="-"
+                  onchange="updateScore(${h}, this.value)"
+                  onkeydown="handleScoreKey(event, ${h})">
+              </td>
+            `).join('')}
+            <td class="subtotal">${inTotal || '-'}</td>
+            <td class="total-cell">${total || '-'}</td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <div class="stats-bar">
+        <div class="stat-item stat-eagles">
+          <div class="value">${stats.eagles}</div>
+          <div class="label">Eagles</div>
+        </div>
+        <div class="stat-item stat-birdies">
+          <div class="value">${stats.birdies}</div>
+          <div class="label">Birdies</div>
+        </div>
+        <div class="stat-item stat-pars">
+          <div class="value">${stats.pars}</div>
+          <div class="label">Pars</div>
+        </div>
+        <div class="stat-item stat-bogeys">
+          <div class="value">${stats.bogeys}</div>
+          <div class="label">Bogeys</div>
+        </div>
+        <div class="stat-item stat-doubles">
+          <div class="value">${stats.doubles}</div>
+          <div class="label">Doble+</div>
+        </div>
+      </div>
+      
+      <div style="margin-top:16px;display:flex;gap:12px;justify-content:flex-end;">
+        <button class="btn btn-secondary" onclick="clearPlayerScores()">🗑️ Limpiar</button>
+        <button class="btn btn-primary" onclick="saveScores()">💾 Guardar scores</button>
+      </div>
+    `;
+  }
+  
+  // Obtener clase de color según score
+  function getScoreClass(score, par) {
+    if (!score) return '';
+    const diff = score - par;
+    if (diff <= -2) return 'eagle';
+    if (diff === -1) return 'birdie';
+    if (diff === 0) return 'par';
+    if (diff === 1) return 'bogey';
+    if (diff === 2) return 'double';
+    return 'triple';
+  }
+  
+  // Actualizar score local
+  window.updateScore = function(hole, value) {
+    if (!currentJugador) return;
+    
+    if (!scores[currentJugador.rut]) {
+      scores[currentJugador.rut] = {};
+    }
+    
+    const val = parseInt(value);
+    if (isNaN(val) || val < 1) {
+      delete scores[currentJugador.rut][hole];
+    } else {
+      scores[currentJugador.rut][hole] = val;
+    }
+    
+    renderScoringArea();
+    renderJugadores(playerSearch.value);
+  };
+  
+  // Navegación con teclas
+  window.handleScoreKey = function(event, hole) {
+    if (event.key === 'Enter' || event.key === 'Tab') {
+      event.preventDefault();
+      const nextHole = hole < 18 ? hole + 1 : 1;
+      const nextInput = document.querySelector(`[data-hole="${nextHole}"]`);
+      if (nextInput) nextInput.focus();
+    }
+  };
+  
+  // Limpiar scores del jugador
+  window.clearPlayerScores = function() {
+    if (!currentJugador) return;
+    if (!confirm('¿Estás seguro de limpiar todos los scores de este jugador?')) return;
+    
+    scores[currentJugador.rut] = {};
+    renderScoringArea();
+    renderJugadores(playerSearch.value);
+    showAlert('Scores limpiados', 'warning');
+  };
+  
+  // Guardar scores
+  window.saveScores = async function() {
+    if (!currentJugador || !currentEvento) return;
+    
+    const playerScores = scores[currentJugador.rut] || {};
+    
+    try {
+      const res = await fetch('/api/scores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          evento: currentEvento,
+          ronda: currentRonda,
+          jugador_rut: currentJugador.rut,
+          scores: playerScores
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (data.ok) {
+        showAlert('✅ Scores guardados correctamente', 'success');
+      } else {
+        showAlert('❌ Error: ' + (data.error || 'No se pudo guardar'), 'error');
+      }
+    } catch (err) {
+      showAlert('❌ Error de conexión', 'error');
+    }
+  };
+  
+  // Mostrar alerta
+  function showAlert(message, type = 'success') {
+    alertBox.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+    alertBox.style.display = 'block';
+    setTimeout(() => {
+      alertBox.style.display = 'none';
+    }, 4000);
+  }
+  
+  // Importar scores
+  window.importScores = function() {
+    document.getElementById('importModal').style.display = 'flex';
+  };
+  
+  window.closeImportModal = function() {
+    document.getElementById('importModal').style.display = 'none';
+  };
+  
+  window.handleImportFile = async function(files) {
+    if (!files.length) return;
+    
+    const file = files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('evento', currentEvento);
+    formData.append('ronda', currentRonda);
+    
+    try {
+      const res = await fetch('/api/import', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await res.json();
+      
+      if (data.ok) {
+        showAlert(`✅ Importados ${data.count || 0} scores`, 'success');
+        closeImportModal();
+        loadJugadores();
+      } else {
+        showAlert('❌ Error: ' + (data.error || 'No se pudo importar'), 'error');
+      }
+    } catch (err) {
+      showAlert('❌ Error de conexión', 'error');
+    }
+  };
+  
+  // Exportar scores
+  window.exportScores = function() {
+    window.open(`/api/export?evento=${encodeURIComponent(currentEvento)}&ronda=${currentRonda}&format=xlsx`, '_blank');
+  };
+  
+  // Drag and drop
+  const importZone = document.getElementById('importZone');
+  importZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    importZone.classList.add('dragover');
+  });
+  importZone.addEventListener('dragleave', () => {
+    importZone.classList.remove('dragover');
+  });
+  importZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    importZone.classList.remove('dragover');
+    handleImportFile(e.dataTransfer.files);
+  });
+  
+  // Init
+  loadEventos();
+})();
+</script>
+</body>
+</html>

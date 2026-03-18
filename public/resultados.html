@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resultados - Leaderboard</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #fff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --primary: #0f766e;
+      --primary-light: #ccfbf1;
+      --accent: #0891b2;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --warning: #eab308;
+      --shadow: 0 4px 20px rgba(0,0,0,.08);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    
+    /* Header */
+    .header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff; padding: 24px 0; }
+    .header-inner { max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    .event-info h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .event-info .meta { font-size: 14px; color: #94a3b8; display: flex; gap: 16px; flex-wrap: wrap; }
+    .event-info .meta span { display: flex; align-items: center; gap: 6px; }
+    .live-badge { background: #dc2626; color: #fff; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
+    .live-dot { width: 8px; height: 8px; background: #fff; border-radius: 50%; }
+    
+    /* Navigation tabs */
+    .nav-tabs { background: #fff; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 100; }
+    .nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; gap: 4px; overflow-x: auto; }
+    .nav-tab { padding: 16px 20px; font-size: 14px; font-weight: 600; color: var(--muted); text-decoration: none; border-bottom: 3px solid transparent; transition: all .2s; white-space: nowrap; }
+    .nav-tab:hover { color: var(--text); }
+    .nav-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    
+    /* Main content */
+    .main { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+    
+    /* Controls bar */
+    .controls { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .control-group { display: flex; align-items: center; gap: 8px; }
+    .control-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+    select, .search-input { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 14px; background: #fff; color: var(--text); outline: none; }
+    select:focus, .search-input:focus { border-color: var(--primary); }
+    .search-input { width: 220px; }
+    .refresh-btn { background: var(--primary); color: #fff; border: none; border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .refresh-btn:hover { background: #0d6459; }
+    .auto-refresh { font-size: 12px; color: var(--muted); margin-left: auto; }
+    
+    /* Leaderboard table */
+    .leaderboard-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .leaderboard-header { background: #0f172a; color: #fff; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .leaderboard-header h2 { font-size: 18px; font-weight: 600; }
+    .round-tabs { display: flex; gap: 4px; }
+    .round-tab { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; background: rgba(255,255,255,.1); color: #fff; border: none; transition: all .2s; }
+    .round-tab:hover { background: rgba(255,255,255,.2); }
+    .round-tab.active { background: var(--primary); }
+    
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    thead th { background: #f1f5f9; padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--line); position: sticky; top: 0; }
+    thead th.center { text-align: center; }
+    tbody tr { border-bottom: 1px solid var(--line); transition: background .15s; }
+    tbody tr:hover { background: #f8fafc; }
+    tbody tr.cut-line { border-bottom: 3px dashed var(--danger); }
+    tbody td { padding: 14px 16px; font-size: 14px; }
+    tbody td.center { text-align: center; }
+    
+    /* Position styles */
+    .pos { font-weight: 700; color: var(--text); min-width: 36px; display: inline-block; }
+    .pos-change { font-size: 11px; margin-left: 4px; }
+    .pos-up { color: var(--success); }
+    .pos-down { color: var(--danger); }
+    
+    /* Player info */
+    .player-cell { display: flex; align-items: center; gap: 12px; }
+    .player-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+    .player-info { display: flex; flex-direction: column; }
+    .player-name { font-weight: 600; color: var(--text); }
+    .player-name a { color: inherit; text-decoration: none; }
+    .player-name a:hover { color: var(--primary); }
+    .player-club { font-size: 12px; color: var(--muted); }
+    .player-badges { display: flex; gap: 4px; margin-top: 2px; }
+    .badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+    .badge-amateur { background: #dbeafe; color: #1e40af; }
+    .badge-senior { background: #fef3c7; color: #92400e; }
+    .badge-dama { background: #fce7f3; color: #9d174d; }
+    .badge-socio { background: #ccfbf1; color: #0f766e; }
+    
+    /* Score styles */
+    .score-total { font-weight: 700; font-size: 16px; }
+    .score-under { color: var(--danger); }
+    .score-over { color: #1e40af; }
+    .score-even { color: var(--text); }
+    .thru { font-size: 13px; color: var(--muted); }
+    .thru.finished { color: var(--success); font-weight: 600; }
+    
+    /* Round scores */
+    .round-scores { display: flex; gap: 8px; }
+    .round-score { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 600; font-size: 13px; background: #f1f5f9; }
+    .round-score.best { background: var(--primary-light); color: var(--primary); }
+    
+    /* Hole-by-hole scores */
+    .hole-scores { display: flex; gap: 2px; }
+    .hole-score { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; border-radius: 4px; }
+    .hole-eagle { background: #fbbf24; color: #000; }
+    .hole-birdie { background: #dc2626; color: #fff; }
+    .hole-par { background: transparent; color: var(--text); }
+    .hole-bogey { background: #3b82f6; color: #fff; border-radius: 50%; }
+    .hole-double { background: #1e3a8a; color: #fff; border-radius: 50%; }
+    .hole-other { background: #0f172a; color: #fff; border-radius: 50%; }
+    
+    /* Stats */
+    .stat-cell { text-align: center; }
+    .stat-value { font-weight: 600; }
+    .stat-label { font-size: 10px; color: var(--muted); }
+    
+    /* Footer legend */
+    .legend { padding: 16px 20px; background: #f8fafc; border-top: 1px solid var(--line); display: flex; gap: 20px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 16px; height: 16px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; }
+    
+    /* Empty state */
+    .empty-state { padding: 60px 20px; text-align: center; }
+    .empty-state svg { width: 64px; height: 64px; color: var(--muted); margin-bottom: 16px; }
+    .empty-state h3 { font-size: 18px; margin-bottom: 8px; }
+    .empty-state p { color: var(--muted); font-size: 14px; }
+    
+    /* Loading */
+    .loading { display: flex; align-items: center; justify-content: center; padding: 60px 20px; }
+    .spinner { width: 40px; height: 40px; border: 3px solid var(--line); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header-inner { flex-direction: column; align-items: flex-start; }
+      .event-info h1 { font-size: 22px; }
+      .controls { flex-direction: column; align-items: stretch; }
+      .search-input { width: 100%; }
+      .auto-refresh { margin-left: 0; margin-top: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="event-info">
+        <h1 id="eventTitle">Cargando evento...</h1>
+        <div class="meta">
+          <span id="eventDates">📅 --</span>
+          <span id="eventCourse">⛳ --</span>
+          <span id="eventFormat">🏆 --</span>
+        </div>
+      </div>
+      <div class="live-badge" id="liveBadge" style="display:none;">
+        <span class="live-dot"></span>
+        EN VIVO
+      </div>
+    </div>
+  </header>
+  
+  <!-- Navigation -->
+  <nav class="nav-tabs">
+    <div class="nav-inner">
+      <a href="#" class="nav-tab active" data-view="leaderboard">Leaderboard</a>
+      <a href="#" class="nav-tab" data-view="scorecard">Scorecards</a>
+      <a href="#" class="nav-tab" data-view="stats">Estadísticas</a>
+      <a href="#" class="nav-tab" data-view="teetimes">Salidas</a>
+      <a href="#" class="nav-tab" data-view="field">Field Oficial</a>
+      <a href="#" class="nav-tab" data-view="history">Historial</a>
+    </div>
+  </nav>
+  
+  <!-- Main Content -->
+  <main class="main">
+    <!-- Controls -->
+    <div class="controls">
+      <div class="control-group">
+        <label class="control-label">Ronda:</label>
+        <select id="roundSelect">
+          <option value="total">Total</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label class="control-label">Categoría:</label>
+        <select id="categorySelect">
+          <option value="all">Todas</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label class="control-label">Formato:</label>
+        <select id="formatSelect">
+          <option value="gross">Gross</option>
+          <option value="net">Neto</option>
+          <option value="stableford">Stableford</option>
+        </select>
+      </div>
+      <input type="text" class="search-input" id="searchInput" placeholder="🔍 Buscar jugador..." />
+      <button class="refresh-btn" id="refreshBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Actualizar
+      </button>
+      <span class="auto-refresh" id="autoRefreshStatus">Auto-refresh: 30s</span>
+    </div>
+    
+    <!-- Leaderboard -->
+    <div id="leaderboardView">
+      <div class="leaderboard-card">
+        <div class="leaderboard-header">
+          <h2>🏆 Leaderboard</h2>
+          <div class="round-tabs" id="roundTabs"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:60px">POS</th>
+                <th>JUGADOR</th>
+                <th class="center">TOTAL</th>
+                <th class="center">THRU</th>
+                <th class="center">HOY</th>
+                <th class="center">R1</th>
+                <th class="center">R2</th>
+                <th class="center">R3</th>
+                <th class="center">R4</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody">
+              <tr><td colspan="9"><div class="loading"><div class="spinner"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot hole-eagle">E</div> Eagle o mejor</div>
+          <div class="legend-item"><div class="legend-dot hole-birdie">B</div> Birdie</div>
+          <div class="legend-item"><div class="legend-dot hole-bogey">+1</div> Bogey</div>
+          <div class="legend-item"><div class="legend-dot hole-double">+2</div> Doble bogey+</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Scorecard View (hidden by default) -->
+    <div id="scorecardView" style="display:none;"></div>
+    
+    <!-- Stats View (hidden by default) -->
+    <div id="statsView" style="display:none;"></div>
+    
+    <!-- Tee Times View (hidden by default) -->
+    <div id="teetimesView" style="display:none;"></div>
+    
+    <!-- Field View (hidden by default) -->
+    <div id="fieldView" style="display:none;"></div>
+    
+    <!-- History View (hidden by default) -->
+    <div id="historyView" style="display:none;"></div>
+  </main>
+  
+  <script>
+  (function() {
+    const params = new URLSearchParams(window.location.search);
+    const EVENTO = params.get('evento') || '';
+    
+    let eventData = null;
+    let leaderboardData = [];
+    let autoRefreshInterval = null;
+    
+    // Elements
+    const eventTitle = document.getElementById('eventTitle');
+    const eventDates = document.getElementById('eventDates');
+    const eventCourse = document.getElementById('eventCourse');
+    const eventFormat = document.getElementById('eventFormat');
+    const liveBadge = document.getElementById('liveBadge');
+    const roundSelect = document.getElementById('roundSelect');
+    const categorySelect = document.getElementById('categorySelect');
+    const formatSelect = document.getElementById('formatSelect');
+    const searchInput = document.getElementById('searchInput');
+    const leaderboardBody = document.getElementById('leaderboardBody');
+    const roundTabs = document.getElementById('roundTabs');
+    
+    // Navigation
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const view = tab.dataset.view;
+        showView(view);
+      });
+    });
+    
+    function showView(view) {
+      ['leaderboard', 'scorecard', 'stats', 'teetimes', 'field', 'history'].forEach(v => {
+        document.getElementById(v + 'View').style.display = v === view ? 'block' : 'none';
+      });
+      if (view === 'stats') loadStats();
+      if (view === 'teetimes') loadTeeTimes();
+      if (view === 'field') loadField();
+      if (view === 'history') loadHistory();
+    }
+    
+    // Load event config
+    async function loadEventConfig() {
+      if (!EVENTO) {
+        eventTitle.textContent = 'Evento no especificado';
+        leaderboardBody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><h3>Evento no encontrado</h3><p>Agrega ?evento=SLUG a la URL</p></div></td></tr>';
+        return;
+      }
+      
+      try {
+        const res = await fetch(`/api/config?evento=${encodeURIComponent(EVENTO)}`);
+        const data = await res.json();
+        
+        if (!data.ok) {
+          eventTitle.textContent = 'Evento no encontrado';
+          return;
+        }
+        
+        eventData = data;
+        eventTitle.textContent = data.titulo || EVENTO;
+        document.title = data.titulo + ' - Resultados';
+        eventDates.innerHTML = `📅 ${data.fecha_inicio || ''} - ${data.fecha_fin || ''}`;
+        eventCourse.innerHTML = `⛳ ${data.cancha || 'Por definir'}`;
+        eventFormat.innerHTML = `🏆 ${formatLabel(data.formato_scoring)}`;
+        
+        // Populate round select
+        roundSelect.innerHTML = '<option value="total">Total</option>';
+        for (let i = 1; i <= (data.num_rondas || 1); i++) {
+          roundSelect.innerHTML += `<option value="${i}">Ronda ${i}</option>`;
+        }
+        
+        // Populate category select
+        categorySelect.innerHTML = '<option value="all">Todas las categorías</option>';
+        (data.categorias || []).forEach(cat => {
+          categorySelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+        });
+        
+        // Check if live
+        if (data.en_vivo) {
+          liveBadge.style.display = 'flex';
+          startAutoRefresh();
+        }
+        
+        // Build round tabs
+        buildRoundTabs(data.num_rondas || 1);
+        
+        // Load leaderboard
+        loadLeaderboard();
+        
+      } catch (err) {
+        console.error('Error loading config:', err);
+        eventTitle.textContent = 'Error cargando evento';
+      }
+    }
+    
+    function formatLabel(formato) {
+      const labels = {
+        'stroke_play': 'Stroke Play',
+        'stableford': 'Stableford',
+        'match_play': 'Match Play',
+        'fourball': 'Fourball (Mejor bola)'
+      };
+      return labels[formato] || 'Stroke Play';
+    }
+    
+    function buildRoundTabs(numRounds) {
+      roundTabs.innerHTML = '';
+      for (let i = 1; i <= numRounds; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'round-tab' + (i === numRounds ? ' active' : '');
+        btn.textContent = `R${i}`;
+        btn.onclick = () => selectRoundTab(i);
+        roundTabs.appendChild(btn);
+      }
+      const totalBtn = document.createElement('button');
+      totalBtn.className = 'round-tab';
+      totalBtn.textContent = 'Total';
+      totalBtn.onclick = () => selectRoundTab('total');
+      roundTabs.appendChild(totalBtn);
+    }
+    
+    function selectRoundTab(round) {
+      document.querySelectorAll('.round-tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      roundSelect.value = round;
+      filterAndRender();
+    }
+    
+    // Load leaderboard
+    async function loadLeaderboard() {
+      try {
+        const round = roundSelect.value;
+        const category = categorySelect.value;
+        const format = formatSelect.value;
+        
+        let url = `/api/leaderboard?evento=${encodeURIComponent(EVENTO)}`;
+        if (round !== 'total') url += `&ronda=${round}`;
+        if (category !== 'all') url += `&categoria=${encodeURIComponent(category)}`;
+        url += `&formato=${format}`;
+        
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        if (!data.ok) {
+          leaderboardBody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><h3>Sin resultados</h3><p>Aún no hay scores registrados</p></div></td></tr>';
+          return;
+        }
+        
+        leaderboardData = data.leaderboard || [];
+        filterAndRender();
+        
+      } catch (err) {
+        console.error('Error loading leaderboard:', err);
+      }
+    }
+    
+    function filterAndRender() {
+      const search = searchInput.value.toLowerCase().trim();
+      let filtered = leaderboardData;
+      
+      if (search) {
+        filtered = filtered.filter(p => 
+          (p.nombre || '').toLowerCase().includes(search) ||
+          (p.apellido || '').toLowerCase().includes(search) ||
+          (p.club || '').toLowerCase().includes(search)
+        );
+      }
+      
+      renderLeaderboard(filtered);
+    }
+    
+    function renderLeaderboard(players) {
+      if (!players.length) {
+        leaderboardBody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><h3>Sin resultados</h3><p>No hay jugadores que coincidan</p></div></td></tr>';
+        return;
+      }
+      
+      leaderboardBody.innerHTML = players.map((p, idx) => {
+        const pos = p.posicion || idx + 1;
+        const posChange = p.cambio_pos || 0;
+        const posChangeHtml = posChange > 0 
+          ? `<span class="pos-change pos-up">▲${posChange}</span>`
+          : posChange < 0 
+            ? `<span class="pos-change pos-down">▼${Math.abs(posChange)}</span>`
+            : '';
+        
+        const initials = ((p.nombre || '')[0] || '') + ((p.apellido || '')[0] || '');
+        
+        const totalClass = p.total_par < 0 ? 'score-under' : p.total_par > 0 ? 'score-over' : 'score-even';
+        const totalDisplay = p.total_par === 0 ? 'E' : (p.total_par > 0 ? '+' : '') + p.total_par;
+        
+        const todayClass = p.hoy_par < 0 ? 'score-under' : p.hoy_par > 0 ? 'score-over' : 'score-even';
+        const todayDisplay = p.hoy_par === 0 ? 'E' : (p.hoy_par > 0 ? '+' : '') + p.hoy_par;
+        
+        const thruClass = p.thru >= 18 ? 'finished' : '';
+        const thruDisplay = p.thru >= 18 ? 'F' : p.thru || '-';
+        
+        // Badges
+        let badges = '';
+        if (p.es_amateur) badges += '<span class="badge badge-amateur">Amateur</span>';
+        if (p.categoria?.toLowerCase().includes('senior')) badges += '<span class="badge badge-senior">Senior</span>';
+        if (p.categoria?.toLowerCase().includes('dama')) badges += '<span class="badge badge-dama">Damas</span>';
+        if (p.es_socio) badges += '<span class="badge badge-socio">Socio</span>';
+        
+        // Round scores
+        const r1 = p.r1 !== null ? p.r1 : '-';
+        const r2 = p.r2 !== null ? p.r2 : '-';
+        const r3 = p.r3 !== null ? p.r3 : '-';
+        const r4 = p.r4 !== null ? p.r4 : '-';
+        
+        return `
+          <tr>
+            <td><span class="pos">${pos}</span>${posChangeHtml}</td>
+            <td>
+              <div class="player-cell">
+                <div class="player-avatar">${initials}</div>
+                <div class="player-info">
+                  <span class="player-name"><a href="scorecard.html?evento=${EVENTO}&jugador=${p.id}">${p.nombre} ${p.apellido}</a></span>
+                  <span class="player-club">${p.club || ''}</span>
+                  ${badges ? `<div class="player-badges">${badges}</div>` : ''}
+                </div>
+              </div>
+            </td>
+            <td class="center"><span class="score-total ${totalClass}">${totalDisplay}</span></td>
+            <td class="center"><span class="thru ${thruClass}">${thruDisplay}</span></td>
+            <td class="center"><span class="${todayClass}">${todayDisplay}</span></td>
+            <td class="center">${r1}</td>
+            <td class="center">${r2}</td>
+            <td class="center">${r3}</td>
+            <td class="center">${r4}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+    
+    // Event listeners
+    roundSelect.addEventListener('change', loadLeaderboard);
+    categorySelect.addEventListener('change', loadLeaderboard);
+    formatSelect.addEventListener('change', loadLeaderboard);
+    searchInput.addEventListener('input', filterAndRender);
+    document.getElementById('refreshBtn').addEventListener('click', loadLeaderboard);
+    
+    // Auto refresh
+    function startAutoRefresh() {
+      if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+      autoRefreshInterval = setInterval(loadLeaderboard, 30000);
+    }
+    
+    // Load stats view
+    async function loadStats() {
+      const statsView = document.getElementById('statsView');
+      statsView.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+      
+      try {
+        const res = await fetch(`/api/stats?evento=${encodeURIComponent(EVENTO)}`);
+        const data = await res.json();
+        
+        if (!data.ok) {
+          statsView.innerHTML = '<div class="empty-state"><h3>Sin estadísticas</h3></div>';
+          return;
+        }
+        
+        statsView.innerHTML = renderStatsView(data);
+      } catch (err) {
+        statsView.innerHTML = '<div class="empty-state"><h3>Error cargando estadísticas</h3></div>';
+      }
+    }
+    
+    function renderStatsView(data) {
+      const holes = data.holes || [];
+      return `
+        <div class="leaderboard-card">
+          <div class="leaderboard-header">
+            <h2>📊 Estadísticas por Hoyo</h2>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Hoyo</th>
+                  <th class="center">Par</th>
+                  <th class="center">Yardas</th>
+                  <th class="center">Promedio</th>
+                  <th class="center">Eagles</th>
+                  <th class="center">Birdies</th>
+                  <th class="center">Pares</th>
+                  <th class="center">Bogeys</th>
+                  <th class="center">Dobles+</th>
+                  <th class="center">Dificultad</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${holes.map(h => `
+                  <tr>
+                    <td><strong>Hoyo ${h.numero}</strong></td>
+                    <td class="center">${h.par}</td>
+                    <td class="center">${h.yardas || '-'}</td>
+                    <td class="center"><strong>${h.promedio?.toFixed(2) || '-'}</strong></td>
+                    <td class="center"><span class="hole-score hole-eagle">${h.eagles || 0}</span></td>
+                    <td class="center"><span class="hole-score hole-birdie">${h.birdies || 0}</span></td>
+                    <td class="center">${h.pares || 0}</td>
+                    <td class="center"><span class="hole-score hole-bogey">${h.bogeys || 0}</span></td>
+                    <td class="center"><span class="hole-score hole-double">${h.dobles_mas || 0}</span></td>
+                    <td class="center">${h.ranking_dificultad || '-'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Load tee times
+    async function loadTeeTimes() {
+      const view = document.getElementById('teetimesView');
+      view.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+      
+      try {
+        const res = await fetch(`/api/salidas?evento=${encodeURIComponent(EVENTO)}`);
+        const data = await res.json();
+        
+        if (!data.ok || !data.grupos?.length) {
+          view.innerHTML = '<div class="empty-state"><h3>Sin salidas programadas</h3></div>';
+          return;
+        }
+        
+        view.innerHTML = `
+          <div class="leaderboard-card">
+            <div class="leaderboard-header">
+              <h2>🏌️ Salidas - ${data.ronda || 'Próxima ronda'}</h2>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:80px">Hora</th>
+                    <th style="width:80px">Hoyo</th>
+                    <th>Grupo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${data.grupos.map(g => `
+                    <tr>
+                      <td><strong>${g.hora}</strong></td>
+                      <td>${g.hoyo_salida}</td>
+                      <td>
+                        ${g.jugadores.map(j => `
+                          <div style="padding:4px 0;">
+                            <span style="font-weight:600;">${j.nombre} ${j.apellido}</span>
+                            <span style="color:var(--muted);font-size:12px;margin-left:8px;">${j.club || ''}</span>
+                          </div>
+                        `).join('')}
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        view.innerHTML = '<div class="empty-state"><h3>Error cargando salidas</h3></div>';
+      }
+    }
+    
+    // Load field
+    async function loadField() {
+      const view = document.getElementById('fieldView');
+      view.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+      
+      try {
+        const res = await fetch(`/api/field?evento=${encodeURIComponent(EVENTO)}`);
+        const data = await res.json();
+        
+        if (!data.ok || !data.jugadores?.length) {
+          view.innerHTML = '<div class="empty-state"><h3>Field vacío</h3></div>';
+          return;
+        }
+        
+        view.innerHTML = `
+          <div class="leaderboard-card">
+            <div class="leaderboard-header">
+              <h2>👥 Field Oficial (${data.jugadores.length} jugadores)</h2>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Jugador</th>
+                    <th>Club</th>
+                    <th class="center">Hándicap</th>
+                    <th>Categoría</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${data.jugadores.map((j, i) => `
+                    <tr>
+                      <td>${i + 1}</td>
+                      <td><strong>${j.nombre} ${j.apellido}</strong></td>
+                      <td>${j.club || '-'}</td>
+                      <td class="center">${j.handicap || '-'}</td>
+                      <td>${j.categoria || '-'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        view.innerHTML = '<div class="empty-state"><h3>Error cargando field</h3></div>';
+      }
+    }
+    
+    // Load history
+    async function loadHistory() {
+      const view = document.getElementById('historyView');
+      view.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+      
+      try {
+        const res = await fetch(`/api/historial?evento=${encodeURIComponent(EVENTO)}`);
+        const data = await res.json();
+        
+        if (!data.ok || !data.rondas?.length) {
+          view.innerHTML = '<div class="empty-state"><h3>Sin historial</h3></div>';
+          return;
+        }
+        
+        view.innerHTML = `
+          <div class="leaderboard-card">
+            <div class="leaderboard-header">
+              <h2>📜 Historial de Rondas</h2>
+            </div>
+            <div style="padding:20px;">
+              ${data.rondas.map(r => `
+                <div style="padding:16px;margin-bottom:12px;background:#f8fafc;border-radius:12px;border:1px solid var(--line);">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <h3 style="font-size:16px;">Ronda ${r.numero} - ${r.fecha}</h3>
+                    <span style="font-size:13px;color:var(--muted);">${r.completada ? '✅ Completada' : '🔄 En progreso'}</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
+                    <div>
+                      <div style="font-size:12px;color:var(--muted);">Líder</div>
+                      <div style="font-weight:600;">${r.lider || '-'}</div>
+                    </div>
+                    <div>
+                      <div style="font-size:12px;color:var(--muted);">Mejor score</div>
+                      <div style="font-weight:600;">${r.mejor_score || '-'}</div>
+                    </div>
+                    <div>
+                      <div style="font-size:12px;color:var(--muted);">Promedio</div>
+                      <div style="font-weight:600;">${r.promedio?.toFixed(1) || '-'}</div>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        view.innerHTML = '<div class="empty-state"><h3>Error cargando historial</h3></div>';
+      }
+    }
+    
+    // Init
+    loadEventConfig();
+  })();
+  </script>
+</body>
+</html>
