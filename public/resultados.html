@@ -225,16 +225,12 @@
                 <th style="width:60px">POS</th>
                 <th>JUGADOR</th>
                 <th class="center">TOTAL</th>
+                <th class="center">BRUTO</th>
                 <th class="center">THRU</th>
-                <th class="center">HOY</th>
-                <th class="center">R1</th>
-                <th class="center">R2</th>
-                <th class="center">R3</th>
-                <th class="center">R4</th>
               </tr>
             </thead>
             <tbody id="leaderboardBody">
-              <tr><td colspan="9"><div class="loading"><div class="spinner"></div></div></td></tr>
+              <tr><td colspan="5"><div class="loading"><div class="spinner"></div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -409,7 +405,7 @@
         const data = await res.json();
         
         if (!data.ok) {
-          leaderboardBody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><h3>Sin resultados</h3><p>Aún no hay scores registrados</p></div></td></tr>';
+          leaderboardBody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><h3>Sin resultados</h3><p>Aún no hay scores registrados</p></div></td></tr>';
           return;
         }
         
@@ -438,7 +434,7 @@
     
     function renderLeaderboard(players) {
       if (!players.length) {
-        leaderboardBody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><h3>Sin resultados</h3><p>No hay jugadores que coincidan</p></div></td></tr>';
+        leaderboardBody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><h3>Sin resultados</h3><p>No hay jugadores que coincidan</p></div></td></tr>';
         return;
       }
       
@@ -469,11 +465,8 @@
         if (p.categoria?.toLowerCase().includes('dama')) badges += '<span class="badge badge-dama">Damas</span>';
         if (p.es_socio) badges += '<span class="badge badge-socio">Socio</span>';
         
-        // Round scores
-        const r1 = p.r1 !== null ? p.r1 : '-';
-        const r2 = p.r2 !== null ? p.r2 : '-';
-        const r3 = p.r3 !== null ? p.r3 : '-';
-        const r4 = p.r4 !== null ? p.r4 : '-';
+        // Round scores - usar total_bruto
+        const bruto = p.total_bruto || '-';
         
         return `
           <tr>
@@ -482,19 +475,15 @@
               <div class="player-cell">
                 <div class="player-avatar">${initials}</div>
                 <div class="player-info">
-                  <span class="player-name"><a href="scorecard.html?evento=${EVENTO}&jugador=${p.id}">${p.nombre} ${p.apellido}</a></span>
+                  <span class="player-name"><a href="scorecard.html?evento=${EVENTO}&jugador=${p.rut}">${p.nombre} ${p.apellido}</a></span>
                   <span class="player-club">${p.club || ''}</span>
                   ${badges ? `<div class="player-badges">${badges}</div>` : ''}
                 </div>
               </div>
             </td>
             <td class="center"><span class="score-total ${totalClass}">${totalDisplay}</span></td>
+            <td class="center">${bruto}</td>
             <td class="center"><span class="thru ${thruClass}">${thruDisplay}</span></td>
-            <td class="center"><span class="${todayClass}">${todayDisplay}</span></td>
-            <td class="center">${r1}</td>
-            <td class="center">${r2}</td>
-            <td class="center">${r3}</td>
-            <td class="center">${r4}</td>
           </tr>
         `;
       }).join('');
