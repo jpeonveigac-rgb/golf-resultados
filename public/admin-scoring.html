@@ -89,14 +89,41 @@
     .scoring-table .subtotal { background: #e2e8f0; font-weight: 700; }
     .scoring-table .total-cell { background: #0f172a; color: #fff; font-weight: 700; }
     
-    .score-input { width: 100%; padding: 8px 4px; border: none; text-align: center; font-size: 15px; font-weight: 600; background: transparent; }
-    .score-input:focus { background: var(--primary-light); outline: 2px solid var(--primary); border-radius: 4px; }
-    .score-input.eagle { background: #fef3c7; }
-    .score-input.birdie { background: #fee2e2; }
-    .score-input.par { background: #f0fdf4; }
-    .score-input.bogey { background: #dbeafe; }
-    .score-input.double { background: #c7d2fe; }
-    .score-input.triple { background: #a5b4fc; }
+    .score-input { 
+      width: 100%; 
+      padding: 12px 4px; 
+      border: 2px solid transparent; 
+      text-align: center; 
+      font-size: 18px; 
+      font-weight: 700; 
+      background: #f8fafc; 
+      border-radius: 6px;
+      color: #0f172a;
+      transition: all 0.15s;
+      -moz-appearance: textfield;
+    }
+    .score-input::-webkit-outer-spin-button,
+    .score-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .score-input:focus { 
+      background: #fff; 
+      border-color: var(--primary); 
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.2);
+      outline: none;
+    }
+    .score-input::placeholder { color: #cbd5e1; font-weight: 400; }
+    .score-input.eagle { background: #fbbf24; color: #78350f; }
+    .score-input.birdie { background: #f87171; color: #fff; }
+    .score-input.par { background: #4ade80; color: #14532d; }
+    .score-input.bogey { background: #60a5fa; color: #1e3a8a; }
+    .score-input.double { background: #818cf8; color: #fff; }
+    .score-input.triple { background: #6366f1; color: #fff; }
+    
+    /* Tabla de scoring mejorada */
+    .scoring-table td { padding: 4px 2px; vertical-align: middle; }
+    .scoring-table th { padding: 10px 4px; font-size: 12px; }
     
     /* Stats summary */
     .stats-bar { display: flex; gap: 16px; padding: 16px; background: #f8fafc; border-radius: 10px; margin-top: 16px; flex-wrap: wrap; }
@@ -461,11 +488,12 @@
             <td class="label-cell">Score</td>
             ${[1,2,3,4,5,6,7,8,9].map(h => `
               <td>
-                <input type="number" min="1" max="15" 
+                <input type="number" min="1" max="15" inputmode="numeric"
                   class="score-input ${getScoreClass(playerScores[h], pars[h-1])}"
                   data-hole="${h}" 
                   value="${playerScores[h] || ''}"
-                  placeholder="-"
+                  placeholder="${pars[h-1]}"
+                  onfocus="this.select()"
                   onchange="updateScore(${h}, this.value)"
                   onkeydown="handleScoreKey(event, ${h})">
               </td>
@@ -473,11 +501,12 @@
             <td class="subtotal">${outTotal || '-'}</td>
             ${[10,11,12,13,14,15,16,17,18].map(h => `
               <td>
-                <input type="number" min="1" max="15"
+                <input type="number" min="1" max="15" inputmode="numeric"
                   class="score-input ${getScoreClass(playerScores[h], pars[h-1])}"
                   data-hole="${h}"
                   value="${playerScores[h] || ''}"
-                  placeholder="-"
+                  placeholder="${pars[h-1]}"
+                  onfocus="this.select()"
                   onchange="updateScore(${h}, this.value)"
                   onkeydown="handleScoreKey(event, ${h})">
               </td>
@@ -549,13 +578,79 @@
     renderJugadores(playerSearch.value);
   };
   
-  // Navegación con teclas
+  // Navegación con teclas mejorada
   window.handleScoreKey = function(event, hole) {
-    if (event.key === 'Enter' || event.key === 'Tab') {
+    const input = event.target;
+    
+    // Tab o Enter: ir al siguiente hoyo
+    if (event.key === 'Tab' && !event.shiftKey) {
       event.preventDefault();
       const nextHole = hole < 18 ? hole + 1 : 1;
       const nextInput = document.querySelector(`[data-hole="${nextHole}"]`);
-      if (nextInput) nextInput.focus();
+      if (nextInput) {
+        nextInput.focus();
+        nextInput.select();
+      }
+    }
+    // Shift+Tab: ir al hoyo anterior
+    else if (event.key === 'Tab' && event.shiftKey) {
+      event.preventDefault();
+      const prevHole = hole > 1 ? hole - 1 : 18;
+      const prevInput = document.querySelector(`[data-hole="${prevHole}"]`);
+      if (prevInput) {
+        prevInput.focus();
+        prevInput.select();
+      }
+    }
+    // Enter: guardar y pasar al siguiente
+    else if (event.key === 'Enter') {
+      event.preventDefault();
+      // Actualizar score primero
+      updateScore(hole, input.value);
+      // Ir al siguiente
+      const nextHole = hole < 18 ? hole + 1 : 1;
+      const nextInput = document.querySelector(`[data-hole="${nextHole}"]`);
+      if (nextInput) {
+        nextInput.focus();
+        nextInput.select();
+      }
+    }
+    // Flecha derecha: siguiente hoyo
+    else if (event.key === 'ArrowRight') {
+      const nextHole = hole < 18 ? hole + 1 : 1;
+      const nextInput = document.querySelector(`[data-hole="${nextHole}"]`);
+      if (nextInput) {
+        nextInput.focus();
+        nextInput.select();
+      }
+    }
+    // Flecha izquierda: hoyo anterior
+    else if (event.key === 'ArrowLeft') {
+      const prevHole = hole > 1 ? hole - 1 : 18;
+      const prevInput = document.querySelector(`[data-hole="${prevHole}"]`);
+      if (prevInput) {
+        prevInput.focus();
+        prevInput.select();
+      }
+    }
+    // Números 1-9: ingresar y avanzar automáticamente
+    else if (/^[1-9]$/.test(event.key)) {
+      // Dejar que se ingrese el número
+      setTimeout(() => {
+        const val = parseInt(input.value);
+        // Si es un valor típico de golf (2-9), auto-avanzar
+        if (val >= 2 && val <= 9) {
+          updateScore(hole, val);
+          const nextHole = hole < 18 ? hole + 1 : 1;
+          const nextInput = document.querySelector(`[data-hole="${nextHole}"]`);
+          if (nextInput) {
+            setTimeout(() => {
+              nextInput.focus();
+              nextInput.select();
+            }, 50);
+          }
+        }
+      }, 100);
     }
   };
   
