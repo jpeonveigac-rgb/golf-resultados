@@ -1,0 +1,23 @@
+name = "golf-resultados"
+main = "src/worker.js"
+compatibility_date = "2024-01-01"
+
+# Configurar tu dominio personalizado o usar el subdomain de workers
+# route = { pattern = "resultados.tudominio.cl/*", zone_name = "tudominio.cl" }
+
+[vars]
+NOMBRE_SISTEMA = "Sistema de Resultados Golf"
+
+# Base de datos D1 - crear con: wrangler d1 create golf-resultados-db
+[[d1_databases]]
+binding = "DB"
+database_name = "golf-resultados-db"
+database_id = "ae0cafaf-f08a-4c07-b970-1df75702e7fe"
+
+# Assets estáticos (HTML, CSS, JS)
+[site]
+bucket = "./public"
+
+# Variables de entorno para producción (configurar en Cloudflare Dashboard)
+# ADMIN_USER = "admin"
+# ADMIN_PASS = "tu-password-seguro"
