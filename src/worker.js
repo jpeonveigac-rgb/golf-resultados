@@ -427,16 +427,11 @@ async function handleJugadores(request, url, env) {
       FROM scores WHERE evento_slug = ? AND ronda = ?
     `).bind(evento, ronda).all();
 
-    // Agrupar scores por jugador
+    // Agrupar scores por jugador - devolver solo golpes para compatibilidad
     const scoresMap = {};
     for (const s of (scoresDb.results || [])) {
       if (!scoresMap[s.jugador_rut]) scoresMap[s.jugador_rut] = {};
-      scoresMap[s.jugador_rut][s.hoyo] = {
-        golpes: s.golpes,
-        putts: s.putts,
-        fairway: s.fairway,
-        penalties: s.penalidades
-      };
+      scoresMap[s.jugador_rut][s.hoyo] = s.golpes;
     }
 
     return json({
@@ -930,7 +925,9 @@ async function handleLeaderboard(url, env) {
 
 async function handleScorecard(url, env) {
   const evento = url.searchParams.get("evento");
-  const rut = (url.searchParams.get("rut") || "").replace(/[^0-9kK]/gi, "").toUpperCase();
+  // Aceptar tanto "rut" como "jugador" como parámetro
+  const rutParam = url.searchParams.get("rut") || url.searchParams.get("jugador") || "";
+  const rut = rutParam.replace(/[^0-9kK]/gi, "").toUpperCase();
   const ronda = url.searchParams.get("ronda"); // null = todas las rondas
   
   if (!evento || !rut) return json({ ok: false, error: "Faltan parámetros." }, 400);
